@@ -346,4 +346,4 @@ VotingClassifier([
 - Monitor auto-retrain events and their outcomes
 - Review market context for signal quality analysis
 
-This advanced system represents a significant upgrade to the MR BEN AI trading system, providing professional-grade features with robust performance monitoring and self-healing capabilities. 
+This advanced system represents a significant upgrade to the MR BEN AI trading system, providing professional-grade features with robust performance monitoring and self-healing capabilities.

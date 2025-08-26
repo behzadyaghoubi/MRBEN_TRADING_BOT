@@ -7,20 +7,20 @@ param(
 # Safety check - ensure emergency brake is in place
 if ($Mode -eq "live") {
     Write-Host "⚠️  LIVE MODE - Safety checks required" -ForegroundColor Yellow
-    
+
     # Check if halt.flag exists
     if (Test-Path ".\halt.flag") {
         Write-Host "❌ Emergency brake is active. Remove halt.flag before live trading." -ForegroundColor Red
         exit 1
     }
-    
+
     # Confirm live trading
     $confirm = Read-Host "Are you sure you want to start LIVE trading? (type 'YES' to confirm)"
     if ($confirm -ne "YES") {
         Write-Host "Live trading cancelled." -ForegroundColor Yellow
         exit 0
     }
-    
+
     Write-Host "✅ Live trading confirmed. Starting system..." -ForegroundColor Green
 } else {
     # Paper mode - create emergency brake

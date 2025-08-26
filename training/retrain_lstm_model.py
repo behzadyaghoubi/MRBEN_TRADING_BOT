@@ -4,7 +4,6 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from models.lstm_model import LSTMModel
 
 # --- Load live trading log ---

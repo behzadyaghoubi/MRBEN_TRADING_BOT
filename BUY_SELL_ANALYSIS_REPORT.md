@@ -192,14 +192,14 @@ print(f"Balanced signal: {balanced_signal}")
 ```python
 def _apply_balanced_ml_filter(self, lstm_signal: Dict, ta_signal: Dict) -> Dict:
     """Apply balanced ML filter with bias correction."""
-    
+
     # Combine signals with weights
     combined_signal = (
         lstm_signal['signal'] * 0.4 +
         ta_signal['signal'] * 0.3 +
         self._get_market_bias() * 0.3
     )
-    
+
     # Apply threshold with bias correction
     if combined_signal > 0.3:
         final_signal = 1  # BUY
@@ -207,7 +207,7 @@ def _apply_balanced_ml_filter(self, lstm_signal: Dict, ta_signal: Dict) -> Dict:
         final_signal = -1  # SELL
     else:
         final_signal = 0  # HOLD
-    
+
     return {
         'signal': final_signal,
         'confidence': abs(combined_signal),
@@ -222,4 +222,4 @@ def _get_market_bias(self) -> float:
 
 ---
 
-**🎯 نتیجه‌گیری: مشکل BUY bias شناسایی و راهکارهای رفع ارائه شد.** 
+**🎯 نتیجه‌گیری: مشکل BUY bias شناسایی و راهکارهای رفع ارائه شد.**

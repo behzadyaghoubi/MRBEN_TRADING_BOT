@@ -70,10 +70,10 @@ try {
     # Fix keyboard layout registry
     reg add "HKCU\Keyboard Layout\Preload" /v "1" /t REG_SZ /d "00000409" /f
     reg add "HKCU\Keyboard Layout\Substitutes" /v "00000409" /t REG_SZ /d "00000409" /f
-    
+
     # Fix input method registry
     reg add "HKCU\Control Panel\International\User Profile" /v "Languages" /t REG_MULTI_SZ /d "en-US" /f
-    
+
     Write-Host "   ✅ تنظیمات Registry اصلاح شد" -ForegroundColor Green
 } catch {
     Write-Host "   ⚠️ خطا در تنظیمات Registry: $($_.Exception.Message)" -ForegroundColor Red
@@ -94,4 +94,4 @@ try {
 
 Write-Host "`n🎉 راه‌حل قطعی مشکل کیبورد اجرا شد!" -ForegroundColor Green
 Write-Host "لطفاً سیستم را Restart کنید تا تغییرات اعمال شود." -ForegroundColor Yellow
-Write-Host "=" * 50 -ForegroundColor Cyan 
+Write-Host "=" * 50 -ForegroundColor Cyan

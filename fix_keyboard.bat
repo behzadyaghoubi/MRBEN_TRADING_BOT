@@ -7,4 +7,4 @@ if %errorlevel% equ 0 (
 ) else (
     echo Keyboard fix failed. Manual intervention may be required.
 )
-pause 
+pause

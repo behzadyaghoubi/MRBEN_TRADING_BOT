@@ -523,7 +523,9 @@ class AdvancedSignalGenerator:
             weights = [s.confidence / total_confidence for s in signals]
 
             # Weighted direction (positive = long, negative = short)
-            weighted_direction = sum(s.direction * w for s, w in zip(signals, weights, strict=False))
+            weighted_direction = sum(
+                s.direction * w for s, w in zip(signals, weights, strict=False)
+            )
 
             # Determine final direction
             if abs(weighted_direction) > 0.3:

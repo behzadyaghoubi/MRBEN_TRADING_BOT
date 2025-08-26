@@ -107,6 +107,8 @@ class MT5LiveTrader:
     def _setup_logging(self) -> None:
         """Setup logging configuration."""
         self.logger = logging.getLogger(self.__class__.__name__)
+        # Dedicated logger for SL/TP decisions with more specific naming
+        self.sltp_logger = logging.getLogger("core.trader.sltp")
         self.logger.setLevel(getattr(logging, self.config.LOG_LEVEL.upper(), logging.INFO))
 
         # Logging root
@@ -951,9 +953,10 @@ class MT5LiveTrader:
                 # Calculate ATR from the data
                 atr_series = compute_atr(df, self.atr_period)
                 atr_value = atr_series.iloc[-1] if not atr_series.empty else None
+                self.sltp_logger.debug(f"ATR calculated from {len(df)} candles, period: {self.atr_period}")
             else:
                 atr_value = None
-                self.logger.warning("Insufficient data for ATR calculation, using fallback")
+                self.sltp_logger.warning("Insufficient data for ATR calculation, using fallback percentages")
 
             # Use new ATR-based SL/TP calculator
             sltp_result = calc_sltp_from_atr(
@@ -969,11 +972,20 @@ class MT5LiveTrader:
 
             sl, tp = sltp_result.sl, sltp_result.tp
 
-            # Log ATR SL/TP calculation details
-            self.logger.info(
-                f"ATR SL/TP: Entry={entry_price:.5f}, ATR={atr_value:.5f if atr_value else 'N/A'}, "
-                f"SL={sl:.5f}, TP={tp:.5f}, Fallback={sltp_result.used_fallback}, "
-                f"Side={trade_type}, RR={self.rr}, SL_k={self.sl_k}, TP_k={self.tp_k}"
+            # Enhanced professional logging for ATR SL/TP decisions
+            self.sltp_logger.info(
+                f"ATR SL/TP Decision | "
+                f"Side: {trade_type} | "
+                f"Entry: {entry_price:.5f} | "
+                f"ATR: {atr_value:.5f if atr_value else 'N/A'} | "
+                f"RR: {self.rr} | "
+                f"SL_k: {self.sl_k} | "
+                f"TP_k: {self.tp_k} | "
+                f"Fallback_SL_pct: {self.fallback_sl_pct} | "
+                f"Fallback_TP_pct: {self.fallback_tp_pct} | "
+                f"Result_SL: {sl:.5f} | "
+                f"Result_TP: {tp:.5f} | "
+                f"Used_Fallback: {sltp_result.used_fallback}"
             )
 
             # Calculate lot size
