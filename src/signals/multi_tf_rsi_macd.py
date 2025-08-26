@@ -4,7 +4,7 @@ from typing import Literal
 
 import pandas as pd
 
-from indicators.rsi_macd import compute_macd, compute_rsi
+from src.indicators.rsi_macd import compute_macd, compute_rsi
 
 Side = Literal["buy", "sell", "neutral"]
 
