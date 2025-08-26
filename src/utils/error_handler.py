@@ -60,7 +60,7 @@ def error_handler(
         yield
     except Exception as e:  # no bare except
         lg.error("Error in %s: %s", op_name, e, exc_info=True)
-
+        
         # Handle metrics if available (new signature)
         if not isinstance(op_name_or_logger, logging.Logger) and metrics_or_fallback is not None:
             if hasattr(metrics_or_fallback, "inc_error"):
@@ -69,6 +69,8 @@ def error_handler(
                 except Exception:
                     # metrics failure must not swallow original error
                     pass
-
-        # IMPORTANT: re-raise so that contextmanager "stops after throw"
+        
+        # For old signature with fallback, we need to handle this differently
+        # Since we can't yield after an exception in a contextmanager,
+        # we'll just log and re-raise for now
         raise
