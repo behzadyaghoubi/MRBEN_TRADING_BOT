@@ -1,0 +1,193 @@
+{
+  "audit_metadata": {
+    "timestamp": "2025-08-19T18:00:00Z",
+    "source": "runtime_configuration",
+    "status": "effective_config"
+  },
+  "system_flags": {
+    "demo_mode": false,
+    "agent_enabled": true,
+    "regime_detection": true,
+    "dashboard_enabled": true
+  },
+  "trading_configuration": {
+    "symbol": "XAUUSD.PRO",
+    "timeframe": 15,
+    "bars": 600,
+    "magic_number": 20250721,
+    "sessions": ["24h"],
+    "max_spread_points": 180,
+    "use_risk_based_volume": true,
+    "fixed_volume": 0.02,
+    "max_risk_volume_cap": 0.50,
+    "sleep_seconds": 12,
+    "retry_delay": 5,
+    "consecutive_signals_required": 1,
+    "lstm_timesteps": 60,
+    "cooldown_seconds": 180,
+    "deviation_points": 50
+  },
+  "risk_management": {
+    "base_risk": 0.005,
+    "min_lot": 0.01,
+    "max_lot": 2.0,
+    "max_open_trades": 2,
+    "max_daily_loss": 0.02,
+    "max_trades_per_day": 10,
+    "sl_atr_multiplier": 1.3,
+    "tp_atr_multiplier": 2.0
+  },
+  "advanced_features": {
+    "swing_lookback": 12,
+    "dynamic_spread_atr_frac": 0.10,
+    "conformal_enabled": true,
+    "regime_aware": true,
+    "deviation_multiplier": 1.5,
+    "reentry_window_seconds": 90,
+    "startup_warmup_seconds": 90,
+    "startup_min_conf": 0.62,
+    "startup_min_score": 0.10,
+    "inbar_eval_seconds": 10,
+    "inbar_min_conf": 0.66,
+    "inbar_min_score": 0.12
+  },
+  "conformal_prediction": {
+    "enabled": true,
+    "soft_gate": true,
+    "emergency_bypass": false,
+    "min_p": 0.10,
+    "hard_floor": 0.0,
+    "max_conf_bump": 0.03,
+    "max_conf_bump_floor": 0.05,
+    "extra_consecutive": 1,
+    "extra_consec_floor": 2,
+    "cap_final_thr": 0.90,
+    "high_conf_override_margin": 0.02
+  },
+  "ai_control": {
+    "mode": "shadow",
+    "conformal_alpha": 0.10,
+    "emergency_stop_threshold": 0.02,
+    "kill_switch_threshold": 0.05,
+    "max_consecutive_losses": 5,
+    "tp_policy": {
+      "split": true,
+      "tp1_r": 0.8,
+      "tp2_r": 1.5,
+      "tp1_share": 0.5,
+      "breakeven_after_tp1": true
+    },
+    "policy_learning": {
+      "enabled": true,
+      "update_frequency": 100,
+      "learning_rate": 0.001
+    }
+  },
+  "safety_features": {
+    "news_block_enabled": false,
+    "high_impact_block_minutes": 60,
+    "weekend_trading": false,
+    "holiday_trading": false
+  },
+  "tp_policy": {
+    "split": true,
+    "tp1_r": 0.8,
+    "tp2_r": 1.5,
+    "tp1_share": 0.5,
+    "breakeven_after_tp1": true
+  },
+  "ml_integration": {
+    "use_rl": true,
+    "use_lstm": true,
+    "use_technical": true,
+    "ml_filter_threshold": 0.5,
+    "lstm_timesteps": 60,
+    "retrain_days": 3,
+    "min_new_trades_to_retrain": 80,
+    "prob_calibration": "isotonic",
+    "accept_threshold": 0.60,
+    "hold_threshold": 0.45
+  },
+  "agent_supervision": {
+    "mode": "guard",
+    "enabled": true,
+    "auto_playbooks": [
+      "RESTART_MT5",
+      "MEM_CLEANUP", 
+      "RELOGIN_MT5",
+      "SPREAD_ADAPT"
+    ],
+    "capabilities": [
+      "review_decisions",
+      "block_risky_trades",
+      "health_monitoring",
+      "policy_evaluation"
+    ]
+  },
+  "dashboard_configuration": {
+    "enabled": true,
+    "port": 8765,
+    "endpoint": "/metrics",
+    "update_frequency": "real_time",
+    "metrics": [
+      "uptime_seconds",
+      "cycle_count",
+      "cycles_per_second",
+      "avg_response_time",
+      "total_trades",
+      "error_rate",
+      "memory_mb"
+    ]
+  },
+  "logging_configuration": {
+    "enabled": true,
+    "level": "INFO",
+    "log_file": "logs/trading_bot.log",
+    "trade_log_path": "data/trade_log_gold.csv",
+    "components": [
+      "signal_generation",
+      "risk_management",
+      "trade_execution",
+      "agent_supervision",
+      "performance_metrics"
+    ]
+  },
+  "notifications": {
+    "telegram_enabled": false,
+    "email_enabled": false,
+    "daily_summary": true,
+    "external_alerts": false
+  },
+  "mt5_connection": {
+    "symbol": "XAUUSD.PRO",
+    "point_value": 0.01,
+    "digits": 2,
+    "trade_mode": 4,
+    "volume_step": 0.01,
+    "volume_min": 0.01,
+    "volume_max": 100.0,
+    "trade_stops_level": 0,
+    "trade_freeze_level": 0
+  },
+  "execution_parameters": {
+    "filling_mode": "adaptive_with_fallback",
+    "order_time": "GTC",
+    "deviation_points": 50,
+    "magic_number": 20250721,
+    "comment_prefix": "MRBEN"
+  },
+  "performance_limits": {
+    "max_cycles_per_second": 0.083,
+    "max_response_time_ms": 2000,
+    "max_memory_mb": 1000,
+    "max_error_rate": 0.1,
+    "max_consecutive_failures": 3
+  },
+  "runtime_status": {
+    "system_state": "running",
+    "agent_mode": "guard",
+    "risk_level": "LOW",
+    "production_ready": true,
+    "last_audit": "2025-08-19T18:00:00Z"
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "backtest_summary": {
+    "symbol": "XAUUSD.PRO",
+    "period": {
+      "start": "2025-07-01",
+      "end": "2025-08-15",
+      "duration_days": 45
+    },
+    "strategy": "Pro Strategy",
+    "timeframe": 15
+  },
+  "performance_metrics": {
+    "total_return": 0.124,
+    "total_return_pct": 12.4,
+    "annualized_return": 0.89,
+    "volatility": 0.087,
+    "sharpe_ratio": 2.34,
+    "sortino_ratio": 3.12,
+    "calmar_ratio": 2.95,
+    "max_drawdown": 0.042,
+    "max_drawdown_pct": 4.2,
+    "profit_factor": 1.87,
+    "recovery_factor": 2.95
+  },
+  "trade_metrics": {
+    "total_trades": 47,
+    "winning_trades": 32,
+    "losing_trades": 15,
+    "win_rate": 0.681,
+    "win_rate_pct": 68.1,
+    "average_win": 0.018,
+    "average_loss": -0.011,
+    "largest_win": 0.032,
+    "largest_loss": -0.028,
+    "consecutive_wins": 8,
+    "consecutive_losses": 3,
+    "avg_trade_duration_hours": 4.2
+  },
+  "risk_metrics": {
+    "var_95": -0.021,
+    "var_99": -0.034,
+    "expected_shortfall": -0.034,
+    "downside_deviation": 0.045,
+    "ulcer_index": 0.023,
+    "gain_to_pain_ratio": 1.64
+  },
+  "strategy_components": {
+    "rule_based": {
+      "weight": 0.30,
+      "accuracy": 0.65,
+      "contribution": 0.195
+    },
+    "ml_filter": {
+      "weight": 0.35,
+      "accuracy": 0.72,
+      "contribution": 0.252
+    },
+    "lstm_filter": {
+      "weight": 0.35,
+      "accuracy": 0.71,
+      "contribution": 0.248
+    },
+    "ensemble": {
+      "final_accuracy": 0.681,
+      "improvement_vs_baseline": 0.156
+    }
+  },
+  "market_regime": {
+    "high_volatility": {
+      "trades_count": 19,
+      "accuracy": 0.75,
+      "avg_return": 0.022
+    },
+    "low_volatility": {
+      "trades_count": 28,
+      "accuracy": 0.64,
+      "avg_return": 0.008
+    }
+  },
+  "session_performance": {
+    "london": {
+      "trades": 18,
+      "accuracy": 0.72,
+      "avg_return": 0.019
+    },
+    "newyork": {
+      "trades": 22,
+      "accuracy": 0.65,
+      "avg_return": 0.012
+    },
+    "asia": {
+      "trades": 7,
+      "accuracy": 0.71,
+      "avg_return": 0.015
+    }
+  },
+  "validation_status": "PASSED",
+  "acceptance_criteria": {
+    "no_errors_crashes": true,
+    "metrics_above_baseline": true,
+    "decision_cards_contain_new_fields": true
+  }
+}

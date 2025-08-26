@@ -1,0 +1,48 @@
+# MR BEN Live Trading Events Log
+
+**Timestamp**: 2025-08-18
+**Phase**: Live Trading Events Capture
+**Status**: Ready to capture
+
+## Expected Event Types
+
+### DecisionCard Events
+- Signal generation with confidence scores
+- SMA calculations (SMA20, SMA50)
+- Consecutive signal tracking
+- Spread monitoring
+- Risk gate decisions
+- Trade execution approvals/blocks
+
+### HealthEvent Events
+- Order failures (ORDER_FAIL)
+- System health monitoring
+- Agent interventions
+- Risk gate violations
+- Performance metrics
+
+## Event Log Location
+- **File**: `events.jsonl` (if configured)
+- **Dashboard**: `/metrics` endpoint
+- **Console**: Real-time logging output
+
+## Capture Commands
+```bash
+# Monitor events in real-time
+tail -f events.jsonl
+
+# Check dashboard metrics
+curl http://127.0.0.1:8765/metrics
+
+# Monitor console logs
+python live_trader_clean.py
+```
+
+## Live Events Captured
+[To be populated during live execution]
+
+## Key Events to Monitor
+1. **DecisionCard**: Signal confidence, spread, consecutive counts
+2. **HealthEvent**: Order failures, system health, agent actions
+3. **Performance**: Uptime, cycles, response times, memory usage
+4. **Trading**: Order execution, position management, P&L tracking

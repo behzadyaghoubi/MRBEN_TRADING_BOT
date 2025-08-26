@@ -1,0 +1,27 @@
+{
+  "ml": {
+    "current": "models/ml_filter.pkl",
+    "history": [],
+    "last_retrain": null,
+    "performance": {
+      "current_auc": 0.0,
+      "current_f1": 0.0,
+      "current_calibration": 0.0
+    }
+  },
+  "lstm": {
+    "current": "models/lstm_model.h5",
+    "history": [],
+    "last_retrain": null,
+    "performance": {
+      "current_auc": 0.0,
+      "current_f1": 0.0,
+      "current_calibration": 0.0
+    }
+  },
+  "metadata": {
+    "created": "2025-08-20T00:00:00Z",
+    "version": "1.0.0",
+    "description": "MR BEN AutoML Model Registry"
+  }
+}

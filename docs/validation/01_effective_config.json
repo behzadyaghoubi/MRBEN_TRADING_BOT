@@ -1,0 +1,111 @@
+{
+  "credentials": {
+    "login": 123456,
+    "password": "${MT5_PASSWORD}",
+    "server": "YourBroker-Server"
+  },
+  "flags": {
+    "demo_mode": false
+  },
+  "trading": {
+    "symbol": "XAUUSD.PRO",
+    "timeframe": 15,
+    "bars": 600,
+    "magic_number": 20250721,
+    "consecutive_signals_required": 2,
+    "sleep_seconds": 12,
+    "retry_delay": 5
+  },
+  "risk": {
+    "base_risk": 0.005,
+    "min_lot": 0.01,
+    "max_lot": 2.0,
+    "max_open_trades": 2,
+    "max_daily_loss": 0.02
+  },
+  "session": {
+    "timezone": "Etc/UTC",
+    "windows": {
+      "LONDON": ["07:00", "16:00"],
+      "NEWYORK": ["12:00", "21:00"]
+    },
+    "block_outside": true
+  },
+  "advanced": {
+    "startup_warmup_seconds": 60,
+    "deviation_multiplier": 1.5,
+    "inbar_eval_seconds": 10
+  },
+  "execution": {
+    "spread_eps": 0.02,
+    "use_spread_ma": true,
+    "spread_ma_window": 5,
+    "spread_hysteresis_factor": 1.05,
+    "deviation_points": 50
+  },
+  "tp_policy": {
+    "split": true,
+    "tp1_r": 0.8,
+    "tp2_r": 1.5,
+    "tp1_share": 0.5,
+    "breakeven_after_tp1": true
+  },
+  "conformal": {
+    "enabled": true,
+    "soft_gate": true,
+    "min_p": 0.10,
+    "hard_floor": 0.05,
+    "cap_final_thr": 0.90
+  },
+  "strategy": {
+    "use_rule": true,
+    "use_pa": true,
+    "use_ml": true,
+    "use_lstm": true,
+    "weights": {
+      "rule": 0.30,
+      "ml": 0.35,
+      "lstm": 0.35
+    },
+    "min_conf": 0.55,
+    "atr_window": 14,
+    "atr_conf_scale": [0.5, 0.9],
+    "session_blocks": ["ASIA_MID"],
+    "regime": {
+      "HIGH_VOL": {
+        "conf_mult": 0.8,
+        "thr_add": 0.05
+      },
+      "LOW_VOL": {
+        "conf_mult": 1.05,
+        "thr_add": -0.05
+      }
+    }
+  },
+  "ml": {
+    "model": "models/ml_filter.pkl",
+    "calib": "models/ml_calib.pkl",
+    "scaler": "models/scaler.pkl"
+  },
+  "lstm": {
+    "model": "models/lstm_model.h5",
+    "seq_len": 50
+  },
+  "portfolio": {
+    "symbols": ["XAUUSD.PRO", "EURUSD.PRO", "GBPUSD.PRO"],
+    "max_open_trades_total": 4,
+    "max_risk_per_symbol": 0.01
+  },
+  "agent": {
+    "mode": "guard",
+    "halt_on_exposure": false,
+    "halt_on_errors": true,
+    "halt_on_breach": true
+  },
+  "logging": {
+    "enabled": true,
+    "level": "INFO",
+    "log_file": "logs/trading_bot.log",
+    "trade_log_path": "data/trade_log_gold.csv"
+  }
+}

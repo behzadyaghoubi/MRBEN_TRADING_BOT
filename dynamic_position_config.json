@@ -1,0 +1,54 @@
+{
+    "position_management": {
+        "enabled": true,
+        "check_interval_seconds": 30,
+        "max_positions": 2,
+        "atr_settings": {
+            "period": 14,
+            "multiplier": 2.0,
+            "min_distance_points": 10
+        },
+        "take_profit_settings": {
+            "trail_percent": 0.5,
+            "initial_percent": 1.0
+        },
+        "stop_loss_settings": {
+            "use_atr": true,
+            "fixed_distance_points": 50,
+            "trailing_enabled": true
+        },
+        "risk_management": {
+            "max_daily_loss": 100.0,
+            "max_position_size": 0.1,
+            "min_position_size": 0.01
+        },
+        "logging": {
+            "enabled": true,
+            "log_level": "INFO",
+            "log_file": "logs/dynamic_position_manager.log"
+        }
+    },
+    "symbols": {
+        "XAUUSD.PRO": {
+            "atr_multiplier": 2.0,
+            "tp_trail_percent": 0.5,
+            "min_atr_distance": 10
+        }
+    },
+    "advanced_settings": {
+        "chandelier_exit": {
+            "enabled": true,
+            "atr_multiplier": 2.0
+        },
+        "partial_close": {
+            "enabled": false,
+            "close_percent": 50,
+            "at_profit_percent": 1.0
+        },
+        "break_even": {
+            "enabled": true,
+            "trigger_percent": 0.5,
+            "offset_points": 5
+        }
+    }
+} 

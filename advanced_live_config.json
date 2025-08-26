@@ -1,0 +1,45 @@
+{
+  "symbol": "XAUUSD",
+  "lot_size": 0.01,
+  "max_positions": 1,
+  "stop_loss_pips": 50,
+  "take_profit_pips": 100,
+  "max_daily_trades": 10,
+  "min_confidence": 0.7,
+  "risk_per_trade": 0.02,
+  "trading_hours": {
+    "start": "00:00",
+    "end": "23:59"
+  },
+  "session_filters": {
+    "Asia": true,
+    "London": true,
+    "NY": true
+  },
+  "risk_management": {
+    "max_daily_loss": 100,
+    "max_drawdown": 200,
+    "position_sizing": "fixed",
+    "correlation_threshold": 0.7
+  },
+  "ai_settings": {
+    "ensemble_weights": [0.4, 0.3, 0.3],
+    "min_confidence": 0.7,
+    "signal_threshold": 0.2,
+    "auto_retrain": true,
+    "drift_detection": true
+  },
+  "logging": {
+    "trade_executions": true,
+    "position_closures": true,
+    "market_context": true,
+    "performance_metrics": true,
+    "ai_predictions": true
+  },
+  "notifications": {
+    "trade_executed": true,
+    "position_closed": true,
+    "daily_report": true,
+    "error_alerts": true
+  }
+} 

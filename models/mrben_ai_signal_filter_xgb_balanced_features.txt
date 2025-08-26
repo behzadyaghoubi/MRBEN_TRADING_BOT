@@ -1,0 +1,10 @@
+open
+high
+low
+close
+SMA20
+SMA50
+RSI
+MACD
+MACD_signal
+MACD_hist

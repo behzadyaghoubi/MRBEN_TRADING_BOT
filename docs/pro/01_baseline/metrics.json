@@ -1,0 +1,16 @@
+{
+  "net_return": 0.0245,
+  "win_rate": 0.611,
+  "avg_return": 0.00136,
+  "sharpe_ratio": 0.89,
+  "max_drawdown": 0.0123,
+  "total_trades": 18,
+  "winning_trades": 11,
+  "losing_trades": 7,
+  "final_balance": 10245.0,
+  "total_pnl": 245.0,
+  "strategy": "SMA20/50_Crossover",
+  "confidence": 0.7,
+  "timeframe": "15m",
+  "symbol": "XAUUSD.PRO"
+}

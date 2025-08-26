@@ -1,0 +1,30 @@
+MR BEN Signal Confidence Threshold Adjustment Report
+============================================================
+Adjustment Date: 2025-08-05 19:42:08.358461
+
+============================================================
+ADJUSTED THRESHOLDS:
+============================================================
+Base Confidence Threshold: 0.3
+ML Filter Confidence Threshold: 0.4
+TA Combined Threshold: 0.4
+RSI Strong Thresholds: (30, 70)
+RSI Weak Thresholds: (40, 60)
+MACD Strength Threshold: 0.08
+MACD Moderate Threshold: 0.04
+
+============================================================
+EXPECTED IMPACT:
+============================================================
+• More balanced BUY/SELL/HOLD signal distribution
+• Increased trade frequency due to lower thresholds
+• Better adaptation to current market conditions
+• Improved signal diversity and reduced bias
+
+============================================================
+RECOMMENDATIONS:
+============================================================
+• Monitor signal distribution for the next 24-48 hours
+• Adjust thresholds further if needed based on performance
+• Consider increasing thresholds if too many weak signals
+• Consider decreasing thresholds if too few signals

@@ -1,0 +1,189 @@
+# MR BEN Trading System - Default Configuration
+# This file contains default settings that can be overridden by environment variables
+# and command-line arguments
+
+# Data and Storage Paths
+paths:
+  data_dir: "data/"
+  logs_dir: "logs/"
+  models_dir: "models/"
+  artifacts_dir: "artifacts/"
+  profile_dir: "artifacts/profile/"
+  
+# Logging Configuration
+logging:
+  enabled: true
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_rotation: true
+  max_file_size_mb: 100
+  backup_count: 5
+  console_output: true
+  file_output: true
+  
+# Risk Management Parameters
+risk:
+  # Position Sizing
+  base_risk: 0.01  # 1% risk per trade
+  min_lot: 0.01
+  max_lot: 2.0
+  max_open_trades: 3
+  max_daily_loss: 0.02  # 2% max daily loss
+  max_trades_per_day: 10
+  
+  # Stop Loss and Take Profit
+  sl_atr_multiplier: 1.6
+  tp_atr_multiplier: 3.0
+  trailing_atr_multiplier: 1.5
+  
+  # Adaptive Confidence Thresholds
+  base_confidence_threshold: 0.35
+  adaptive_confidence: true
+  performance_window: 20
+  confidence_adjustment_factor: 0.1
+  
+  # Market Regime Detection
+  regime_detection: true
+  trend_threshold: 0.6
+  range_threshold: 0.4
+  news_volatility_multiplier: 2.0
+
+# Market Regime Detection + Adaptive Confidence
+regime:
+  enabled: true
+  
+  # Lookback windows (in bars)
+  windows:
+    vol_atr: 14
+    adx: 14
+    return_ms: 20   # momentum horizon
+    rv: 60          # realized volatility window
+  
+  # Thresholds
+  thresholds:
+    trend_adx: 20.0        # ADX>20 => trending
+    vol_high: 0.012        # RV>1.2% => high vol (per window)
+    spread_wide_bp: 15.0   # wide spread in basis points
+    chop_z: 1.0            # |zscore|<1 and ADX<20 => range/chop
+  
+  # Smoothing parameters
+  smoothing:
+    method: "ema"          # or "majority"
+    alpha: 0.2             # EMA smoothing for regime state
+    min_dwell_bars: 10     # hysteresis: minimum bars to switch again
+  
+  # Adaptive confidence adjustments
+  adapt:
+    base_conf: 0.60
+    trend_bonus: 0.10
+    chop_penalty: 0.15
+    high_vol_penalty: 0.10
+    session_filters:
+      london: {open: "07:00", close: "11:00"}
+      ny: {open: "12:30", close: "16:00"}
+    min_conf_floor: 0.50
+    max_conf_cap: 0.90
+  
+# Trading Execution
+execution:
+  # Spread Management
+  max_spread_points: 200
+  spread_eps: 0.02
+  use_spread_ma: true
+  spread_ma_window: 5
+  spread_hysteresis_factor: 1.05
+  
+  # Order Management
+  deviation: 20
+  retry_attempts: 3
+  retry_delay_seconds: 5
+  
+  # Slippage Handling
+  slippage_tolerance: 0.0005
+  execution_timeout: 30
+  
+# AI System Configuration
+ai:
+  # Model Weights
+  ensemble_weights:
+    technical: 0.4
+    lstm: 0.3
+    ml_filter: 0.3
+    
+  # Feature Engineering
+  feature_window: 50
+  use_meta_features: true
+  session_encoding: true
+  
+  # Model Loading
+  auto_load_models: true
+  model_cache_size: 100
+  
+# Performance Monitoring
+monitoring:
+  # Metrics Collection
+  collect_performance_metrics: true
+  collect_memory_metrics: true
+  collect_latency_metrics: true
+  
+  # Profiling
+  enable_profiling: false
+  profile_interval_seconds: 300
+  
+  # Memory Management
+  memory_check_interval: 60
+  memory_cleanup_threshold_mb: 1000
+  force_cleanup_threshold_mb: 2000
+  
+# Market Data
+data:
+  # Historical Data
+  default_bars: 500
+  max_bars: 10000
+  data_quality_check: true
+  
+  # Real-time Data
+  tick_buffer_size: 1000
+  tick_timeout_seconds: 5
+  
+# Session Management
+sessions:
+  # Trading Sessions
+  london_session:
+    start_hour: 8
+    end_hour: 16
+    timezone: "Europe/London"
+    
+  ny_session:
+    start_hour: 13
+    end_hour: 21
+    timezone: "America/New_York"
+    
+  asia_session:
+    start_hour: 0
+    end_hour: 8
+    timezone: "Asia/Tokyo"
+    
+  # Session Overlap Handling
+  overlap_tolerance_minutes: 30
+  
+# Advanced Features
+advanced:
+  # Swing Analysis
+  swing_lookback: 12
+  swing_threshold: 0.02
+  
+  # Dynamic Spread
+  dynamic_spread_atr_frac: 0.10
+  
+  # Take Profit Policy
+  tp_policy:
+    split: true
+    tp1_r: 0.8
+    tp2_r: 1.5
+    tp1_share: 0.5
+    breakeven_after_tp1: true
+    
+  # Break-even Management
+  breakeven_shift_atr: 0.5
+  breakeven_lock_profit: true

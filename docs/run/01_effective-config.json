@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-08-18",
+  "phase": "pre-flight",
+  "status": "demo_mode_active",
+  
+  "current_config": {
+    "credentials": {
+      "login": 1104123,
+      "password": "***HIDDEN***",
+      "server": "OxSecurities-Demo"
+    },
+    "trading": {
+      "symbol": "XAUUSD.PRO",
+      "timeframe": 15,
+      "bars": 600,
+      "max_spread_points": 180,
+      "consecutive_signals_required": 1
+    },
+    "risk": {
+      "max_open_trades": 2,
+      "max_daily_loss": 0.02,
+      "sl_atr_multiplier": 1.3,
+      "tp_atr_multiplier": 2.0
+    },
+    "agent": {
+      "mode": "guard",
+      "auto_playbooks": ["RESTART_MT5", "MEM_CLEANUP", "RELOGIN_MT5", "SPREAD_ADAPT"]
+    },
+    "dashboard": {
+      "enabled": true,
+      "port": 8765
+    },
+    "flags": {
+      "demo_mode": true
+    }
+  },
+  
+  "required_changes_for_live": {
+    "flags.demo_mode": false,
+    "credentials.server": "OxSecurities-Live",
+    "credentials.login": "LIVE_ACCOUNT_NUMBER",
+    "credentials.password": "LIVE_PASSWORD"
+  },
+  
+  "notes": [
+    "Current configuration is in DEMO mode",
+    "All risk parameters are properly set",
+    "Agent supervision is configured for guard mode",
+    "Dashboard is enabled and accessible",
+    "Symbol XAUUSD.PRO is available and configured"
+  ]
+}

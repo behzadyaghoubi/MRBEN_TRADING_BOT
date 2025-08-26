@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-08-18",
+  "test_phase": "paper_sanity",
+  "dashboard_status": "testing",
+  
+  "dashboard_endpoint": "http://127.0.0.1:8765/metrics",
+  "expected_response": "HTTP 200 JSON",
+  
+  "test_command": "curl http://127.0.0.1:8765/metrics",
+  "status": "ready_to_test",
+  
+  "expected_metrics": [
+    "uptime_seconds",
+    "cycle_count", 
+    "cycles_per_second",
+    "avg_response_time",
+    "total_trades",
+    "error_rate",
+    "memory_mb"
+  ],
+  
+  "notes": [
+    "Dashboard should be accessible during paper test",
+    "Metrics should show real-time trading system status",
+    "Response should be valid JSON with performance data"
+  ]
+}

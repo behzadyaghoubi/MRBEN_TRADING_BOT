@@ -1,0 +1,96 @@
+{
+  "enable_ml": true,
+  "enable_dynamic_thresholds": true,
+  "enable_correlation_analysis": true,
+  "model_training": {
+    "auto_training": true,
+    "training_interval_hours": 24,
+    "min_training_samples": 50,
+    "max_training_samples": 10000,
+    "validation_split": 0.2
+  },
+  "risk_models": {
+    "isolation_forest": {
+      "contamination": 0.1,
+      "n_estimators": 100,
+      "random_state": 42
+    },
+    "random_forest": {
+      "n_estimators": 100,
+      "max_depth": 10,
+      "random_state": 42,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2
+    }
+  },
+  "dynamic_thresholds": {
+    "volatility": {
+      "base_threshold": 0.3,
+      "min_threshold": 0.15,
+      "max_threshold": 0.45,
+      "adjustment_factor": 1.1,
+      "adjustment_threshold": 0.01
+    },
+    "correlation": {
+      "base_threshold": 0.7,
+      "min_threshold": 0.35,
+      "max_threshold": 1.05,
+      "adjustment_factor": 1.05,
+      "adjustment_threshold": 0.02
+    },
+    "concentration": {
+      "base_threshold": 0.4,
+      "min_threshold": 0.2,
+      "max_threshold": 0.6,
+      "adjustment_factor": 1.08,
+      "adjustment_threshold": 0.015
+    },
+    "liquidity": {
+      "base_threshold": 0.5,
+      "min_threshold": 0.25,
+      "max_threshold": 0.75,
+      "adjustment_factor": 1.06,
+      "adjustment_threshold": 0.02
+    },
+    "regime": {
+      "base_threshold": 0.6,
+      "min_threshold": 0.3,
+      "max_threshold": 0.9,
+      "adjustment_factor": 1.1,
+      "adjustment_threshold": 0.025
+    }
+  },
+  "risk_weights": {
+    "volatility": 0.25,
+    "correlation": 0.20,
+    "concentration": 0.20,
+    "liquidity": 0.15,
+    "regime": 0.20
+  },
+  "anomaly_detection": {
+    "enabled": true,
+    "volatility_threshold": 100,
+    "spread_threshold": 50,
+    "correlation_threshold": 0.8,
+    "concentration_threshold": 0.6
+  },
+  "correlation_analysis": {
+    "enabled": true,
+    "min_sample_size": 10,
+    "significance_threshold": 0.05,
+    "update_interval_minutes": 30
+  },
+  "performance_tracking": {
+    "enabled": true,
+    "metrics_window": 100,
+    "accuracy_threshold": 0.7,
+    "retraining_threshold": 0.6
+  },
+  "notifications": {
+    "enabled": true,
+    "high_risk_threshold": 0.8,
+    "threshold_adjustment": true,
+    "model_performance": true,
+    "anomaly_detection": true
+  }
+}

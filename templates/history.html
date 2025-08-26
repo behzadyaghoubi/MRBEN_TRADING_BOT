@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>📜 تاریخچه تحلیل‌ها</title>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      direction: rtl;
+      padding: 20px;
+      background-color: #f3f3f3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #ccc;
+    }
+    th {
+      background-color: #444;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📖 تاریخچه سیگنال‌های ثبت شده</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>🕒 زمان</th>
+        <th>💵 قیمت</th>
+        <th>📉 RSI</th>
+        <th>📊 MACD</th>
+        <th>📈 سیگنال</th>
+        <th>🧠 تحلیل AI</th>
+        <th>🔮 پیش‌بینی</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row[0] }}</td>
+          <td>{{ row[1] }}</td>
+          <td>{{ row[2] }}</td>
+          <td>{{ row[3] }}</td>
+          <td>{{ row[4] }}</td>
+          <td>{{ row[5] }}</td>
+          <td>{{ row[6] }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

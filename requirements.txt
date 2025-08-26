@@ -1,0 +1,24 @@
+# Core dependencies for MR BEN Live Trading System
+# Core Python packages
+pandas>=1.5.0
+numpy>=1.21.0
+
+# AI/ML dependencies
+tensorflow>=2.10.0
+scikit-learn>=1.1.0
+joblib>=1.2.0
+
+# Optional: Standalone Keras (if not using TensorFlow)
+# keras>=2.10.0
+
+# MetaTrader 5 integration
+MetaTrader5>=5.0.0
+
+# Additional utilities
+psutil>=5.9.0  # For memory monitoring
+python-dateutil>=2.8.0  # For date handling
+
+# Development dependencies (optional)
+# pytest>=7.0.0  # For testing
+# black>=22.0.0  # For code formatting
+# flake8>=5.0.0  # For linting

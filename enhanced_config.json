@@ -1,0 +1,43 @@
+{
+    "trading": {
+        "symbol": "XAUUSD",
+        "timeframe": 5,
+        "bars": 100,
+        "demo_mode": true,
+        "enable_mt5": true,
+        "sleep_seconds": 15,
+        "retry_delay": 5,
+        "lstm_timesteps": 60
+    },
+    "risk_management": {
+        "base_risk": 0.02,
+        "min_lot": 0.01,
+        "max_lot": 0.1,
+        "max_open_trades": 2,
+        "max_drawdown": 0.10,
+        "atr_period": 14,
+        "sl_atr_multiplier": 2.0,
+        "tp_atr_multiplier": 4.0,
+        "trailing_atr_multiplier": 1.5,
+        "trailing_update_interval": 30
+    },
+    "confidence_thresholds": {
+        "base_confidence_threshold": 0.5,
+        "adaptive_confidence": true,
+        "performance_window": 20,
+        "confidence_adjustment_factor": 0.1,
+        "ai_filter_threshold": 0.55
+    },
+    "logging": {
+        "log_level": "INFO",
+        "log_file": "logs/enhanced_live_runner.log",
+        "trade_log_file": "enhanced_live_trades.csv"
+    },
+    "mt5": {
+        "login": 1104123,
+        "password": "-4YcBgRd",
+        "server": "OxSecurities-Demo",
+        "magic_number": 20250615,
+        "deviation": 10
+    }
+} 

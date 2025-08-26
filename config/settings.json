@@ -1,0 +1,59 @@
+{
+  "credentials": {
+    "login": 1104123,
+    "password": "-4YcBgRd",
+    "server": "OxSecurities-Demo"
+  },
+  "flags": {
+    "demo_mode": true
+  },
+  "trading": {
+    "symbol": "XAUUSD.PRO",
+    "timeframe": 15,
+    "bars": 500,
+    "magic_number": 20250721,
+    "sessions": ["24h"],
+
+    "max_spread_points": 70,
+    "use_risk_based_volume": true,
+    "fixed_volume": 0.05,
+
+    "cooldown_seconds": 180,
+    "sleep_seconds": 12,
+    "retry_delay": 5,
+    "consecutive_signals_required": 2,
+    "lstm_timesteps": 50
+  },
+  "risk": {
+    "base_risk": 0.003,
+    "min_lot": 0.01,
+    "max_lot": 2.0,
+    "max_open_trades": 3,
+    "max_daily_loss": 0.005,
+    "max_trades_per_day": 6
+  },
+  "logging": {
+    "enabled": true,
+    "level": "INFO",
+    "log_file": "logs/trading_bot.log",
+    "trade_log_path": "data/trade_log_gold.csv"
+  },
+  "models": {
+    "use_lstm": true,
+    "use_technical": true
+  },
+  "advanced": {
+    "dynamic_spread_atr_frac": 0.15,
+    "deviation_multiplier": 1.5
+  },
+  "conformal": {
+    "enabled": true,
+    "soft_gate": true,
+    "min_p": 0.10,
+    "hard_floor": 0.05,
+    "penalty_small": 0.05,
+    "penalty_big": 0.10,
+    "extra_consecutive": 1,
+    "emergency_bypass": false
+  }
+}

@@ -1,0 +1,16 @@
+MR BEN LSTM Model Training Report
+========================================
+Training Date: 2025-08-05 18:09:39.735616
+Dataset Size: 950 sequences
+Model Architecture: LSTM(128) -> LSTM(64) -> Dense(32) -> Dense(3)
+
+Classification Report:
+              precision    recall  f1-score   support
+
+        DOWN       0.00      0.00      0.00        14
+        HOLD       0.96      1.00      0.98       916
+          UP       0.00      0.00      0.00        20
+
+    accuracy                           0.96       950
+   macro avg       0.32      0.33      0.33       950
+weighted avg       0.93      0.96      0.95       950

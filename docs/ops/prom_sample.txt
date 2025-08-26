@@ -1,0 +1,99 @@
+# HELP trading_system_uptime_seconds Total uptime of the trading system in seconds
+# TYPE trading_system_uptime_seconds counter
+trading_system_uptime_seconds 3600
+
+# HELP trading_system_total_trades Total number of trades executed
+# TYPE trading_system_total_trades counter
+trading_system_total_trades 47
+
+# HELP trading_system_winning_trades Total number of winning trades
+# TYPE trading_system_winning_trades counter
+trading_system_winning_trades 32
+
+# HELP trading_system_losing_trades Total number of losing trades
+# TYPE trading_system_losing_trades counter
+trading_system_losing_trades 15
+
+# HELP trading_system_win_rate Current win rate percentage
+# TYPE trading_system_win_rate gauge
+trading_system_win_rate 68.1
+
+# HELP trading_system_profit_factor Current profit factor
+# TYPE trading_system_profit_factor gauge
+trading_system_profit_factor 1.87
+
+# HELP trading_system_sharpe_ratio Current Sharpe ratio
+# TYPE trading_system_sharpe_ratio gauge
+trading_system_sharpe_ratio 2.34
+
+# HELP trading_system_max_drawdown Current maximum drawdown percentage
+# TYPE trading_system_max_drawdown gauge
+trading_system_max_drawdown 4.2
+
+# HELP trading_system_total_return Current total return percentage
+# TYPE trading_system_total_return gauge
+trading_system_total_return 12.4
+
+# HELP trading_system_open_positions Current number of open positions
+# TYPE trading_system_open_positions gauge
+trading_system_open_positions 1
+
+# HELP trading_system_portfolio_exposure Current portfolio exposure percentage
+# TYPE trading_system_portfolio_exposure gauge
+trading_system_portfolio_exposure 0.8
+
+# HELP trading_system_memory_usage_mb Current memory usage in MB
+# TYPE trading_system_memory_usage_mb gauge
+trading_system_memory_usage_mb 156.7
+
+# HELP trading_system_cpu_usage_percent Current CPU usage percentage
+# TYPE trading_system_cpu_usage_percent gauge
+trading_system_cpu_usage_percent 12.3
+
+# HELP trading_system_error_count Total number of errors encountered
+# TYPE trading_system_error_count counter
+trading_system_error_count 0
+
+# HELP trading_system_warning_count Total number of warnings encountered
+# TYPE trading_system_warning_count counter
+trading_system_warning_count 0
+
+# HELP trading_system_cycle_count Total number of market scan cycles completed
+# TYPE trading_system_cycle_count counter
+trading_system_cycle_count 1200
+
+# HELP trading_system_last_cycle_duration_seconds Duration of the last market scan cycle in seconds
+# TYPE trading_system_last_cycle_duration_seconds gauge
+trading_system_last_cycle_duration_seconds 12.0
+
+# HELP trading_system_ml_model_accuracy Current ML model accuracy percentage
+# TYPE trading_system_ml_model_accuracy gauge
+trading_system_ml_model_accuracy 72.0
+
+# HELP trading_system_lstm_model_accuracy Current LSTM model accuracy percentage
+# TYPE trading_system_lstm_model_accuracy gauge
+trading_system_lstm_model_accuracy 71.0
+
+# HELP trading_system_ensemble_confidence Current ensemble confidence score
+# TYPE trading_system_ensemble_confidence gauge
+trading_system_ensemble_confidence 0.72
+
+# HELP trading_system_market_regime Current market regime (0=low_vol, 1=high_vol)
+# TYPE trading_system_market_regime gauge
+trading_system_market_regime 1
+
+# HELP trading_system_session_active Current trading session (0=closed, 1=london, 2=newyork, 3=asia)
+# TYPE trading_system_session_active gauge
+trading_system_session_active 1
+
+# HELP trading_system_risk_level Current risk level (0=low, 1=medium, 2=high)
+# TYPE trading_system_risk_level gauge
+trading_system_risk_level 0
+
+# HELP trading_system_agent_mode Current agent mode (0=passive, 1=guard, 2=active)
+# TYPE trading_system_agent_mode gauge
+trading_system_agent_mode 1
+
+# HELP trading_system_kill_switch_status Kill switch status (0=normal, 1=halted)
+# TYPE trading_system_kill_switch_status gauge
+trading_system_kill_switch_status 0

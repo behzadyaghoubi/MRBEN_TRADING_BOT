@@ -1,0 +1,49 @@
+{
+  "credentials": {
+    "login": 1104123,
+    "password": "-4YcBgRd",
+    "server": "OxSecurities-Demo"
+  },
+  "trading": {
+    "symbol": "XAUUSD.PRO",
+    "timeframe": 15,
+    "bars": 500,
+    "magic_number": 20250721,
+    "sessions": ["London", "NY"],
+    "max_spread_points": 200,
+    "use_risk_based_volume": true,
+    "fixed_volume": 0.01,
+    "sleep_seconds": 12,
+    "retry_delay": 5,
+    "consecutive_signals_required": 1,
+    "lstm_timesteps": 50
+  },
+  "risk": {
+    "base_risk": 0.01,
+    "min_lot": 0.01,
+    "max_lot": 2.0,
+    "max_open_trades": 3,
+    "max_daily_loss": 0.02,
+    "max_trades_per_day": 10
+  },
+  "flags": {
+    "demo_mode": true
+  },
+  "logging": {
+    "enabled": true,
+    "level": "INFO",
+    "log_file": "logs/trading_bot.log",
+    "trade_log_path": "data/trade_log_gold.csv"
+  },
+  "models": {
+    "use_rl": true,
+    "use_lstm": true,
+    "use_technical": true,
+    "ml_filter_threshold": 0.5
+  },
+  "notifications": {
+    "telegram_enabled": false,
+    "email_enabled": false,
+    "daily_summary": true
+  }
+}

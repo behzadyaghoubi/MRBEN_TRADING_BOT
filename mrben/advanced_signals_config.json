@@ -1,0 +1,293 @@
+{
+  "advanced_signals": {
+    "enabled": true,
+    "version": "1.0.0",
+    "description": "Advanced Signal Generation System Configuration",
+    
+    "core_settings": {
+      "enable_ml": true,
+      "enable_fusion": true,
+      "enable_validation": true,
+      "enable_multi_timeframe": true,
+      "enable_pattern_recognition": true,
+      "enable_ensemble_methods": true,
+      "max_signal_history": 10000,
+      "max_fusion_history": 5000,
+      "max_validation_history": 5000
+    },
+    
+    "ml_models": {
+      "signal_classifier": {
+        "type": "RandomForestClassifier",
+        "n_estimators": 100,
+        "max_depth": 10,
+        "random_state": 42,
+        "min_samples_split": 5,
+        "min_samples_leaf": 2
+      },
+      "quality_predictor": {
+        "type": "GradientBoostingRegressor",
+        "n_estimators": 100,
+        "max_depth": 6,
+        "random_state": 42,
+        "learning_rate": 0.1,
+        "subsample": 0.8
+      },
+      "fusion_model": {
+        "type": "RandomForestClassifier",
+        "n_estimators": 100,
+        "max_depth": 8,
+        "random_state": 42,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1
+      },
+      "model_training": {
+        "min_training_samples": 20,
+        "retrain_interval_hours": 24,
+        "performance_threshold": 0.6,
+        "enable_online_learning": true,
+        "batch_size": 100
+      }
+    },
+    
+    "signal_generation": {
+      "trend_following": {
+        "enabled": true,
+        "min_trend_strength": 0.3,
+        "min_confidence": 0.4,
+        "sma_periods": [20, 50, 200],
+        "momentum_threshold": 0.001,
+        "volatility_adjustment": true
+      },
+      "mean_reversion": {
+        "enabled": true,
+        "deviation_threshold": 0.02,
+        "min_strength": 0.2,
+        "max_lookback_periods": 20,
+        "volatility_scaling": true
+      },
+      "breakout": {
+        "enabled": true,
+        "breakout_threshold_atr_multiplier": 0.1,
+        "min_breakout_strength": 0.3,
+        "support_resistance_lookback": 50,
+        "volume_confirmation": true
+      },
+      "momentum": {
+        "enabled": true,
+        "momentum_periods": [5, 10, 20],
+        "min_momentum_threshold": 0.001,
+        "volatility_factor": true,
+        "trend_alignment": true
+      },
+      "volatility": {
+        "enabled": true,
+        "atr_periods": [14, 21],
+        "volatility_regime_thresholds": {
+          "low": 30,
+          "normal": 100,
+          "high": 200
+        },
+        "volatility_expansion_threshold": 1.5
+      },
+      "pattern_based": {
+        "enabled": true,
+        "candlestick_patterns": [
+          "engulfing",
+          "doji",
+          "hammer",
+          "shooting_star",
+          "morning_star",
+          "evening_star"
+        ],
+        "chart_patterns": [
+          "head_and_shoulders",
+          "double_top",
+          "double_bottom",
+          "triangle",
+          "flag",
+          "pennant"
+        ],
+        "min_pattern_confidence": 0.6
+      }
+    },
+    
+    "signal_fusion": {
+      "methods": {
+        "weighted_average": {
+          "enabled": true,
+          "weight_calculation": "confidence_based",
+          "min_weight": 0.1,
+          "direction_threshold": 0.3
+        },
+        "voting": {
+          "enabled": true,
+          "majority_threshold": 0.6,
+          "tie_breaker": "confidence_based",
+          "min_votes": 2
+        },
+        "stacking": {
+          "enabled": true,
+          "base_models": ["trend", "momentum", "breakout"],
+          "meta_model": "RandomForest",
+          "cross_validation_folds": 5
+        },
+        "bagging": {
+          "enabled": true,
+          "n_bags": 10,
+          "bag_size_ratio": 0.8,
+          "aggregation_method": "average"
+        },
+        "boosting": {
+          "enabled": true,
+          "n_estimators": 100,
+          "learning_rate": 0.1,
+          "max_depth": 6
+        }
+      },
+      "fusion_rules": {
+        "min_component_signals": 2,
+        "max_component_signals": 10,
+        "signal_quality_threshold": 0.3,
+        "confidence_threshold": 0.1,
+        "direction_consistency_threshold": 0.6
+      }
+    },
+    
+    "signal_validation": {
+      "quality_assessment": {
+        "strength_threshold": 0.3,
+        "confidence_threshold": 0.4,
+        "consistency_threshold": 0.6,
+        "market_alignment_threshold": 0.5,
+        "timeframe_consistency_threshold": 0.3
+      },
+      "risk_assessment": {
+        "max_risk_score": 0.7,
+        "volatility_penalty": true,
+        "regime_adjustment": true,
+        "session_adjustment": true,
+        "correlation_penalty": true
+      },
+      "validation_checks": {
+        "signal_strength": true,
+        "signal_confidence": true,
+        "component_consistency": true,
+        "market_alignment": true,
+        "timeframe_consistency": true,
+        "risk_assessment": true,
+        "volatility_check": true,
+        "trend_alignment": true
+      }
+    },
+    
+    "multi_timeframe": {
+      "enabled": true,
+      "timeframes": ["1m", "5m", "15m", "1h", "4h", "1d"],
+      "alignment_method": "weighted_consensus",
+      "timeframe_weights": {
+        "1m": 0.05,
+        "5m": 0.1,
+        "15m": 0.2,
+        "1h": 0.3,
+        "4h": 0.25,
+        "1d": 0.1
+      },
+      "consensus_threshold": 0.6,
+      "divergence_detection": true
+    },
+    
+    "performance_tracking": {
+      "metrics": {
+        "signal_accuracy": true,
+        "signal_quality": true,
+        "fusion_performance": true,
+        "validation_accuracy": true,
+        "model_performance": true
+      },
+      "evaluation_periods": {
+        "short_term": "1h",
+        "medium_term": "1d",
+        "long_term": "1w"
+      },
+      "performance_thresholds": {
+        "min_accuracy": 0.6,
+        "min_quality": 0.5,
+        "max_risk": 0.7
+      }
+    },
+    
+    "notifications": {
+      "enabled": true,
+      "signal_generation": {
+        "high_quality_signals": true,
+        "signal_fusion_results": true,
+        "validation_failures": true
+      },
+      "performance_alerts": {
+        "accuracy_drop": true,
+        "quality_degradation": true,
+        "model_drift": true
+      },
+      "system_alerts": {
+        "initialization_failures": true,
+        "model_loading_errors": true,
+        "training_failures": true
+      }
+    },
+    
+    "integration": {
+      "decision_engine": {
+        "enabled": true,
+        "signal_weight": 0.3,
+        "confidence_threshold": 0.6,
+        "quality_threshold": 0.5
+      },
+      "risk_management": {
+        "enabled": true,
+        "risk_score_weight": 0.2,
+        "max_risk_score": 0.7
+      },
+      "position_management": {
+        "enabled": true,
+        "signal_strength_scaling": true,
+        "confidence_based_sizing": true
+      },
+      "market_analysis": {
+        "enabled": true,
+        "regime_alignment": true,
+        "session_alignment": true,
+        "volatility_alignment": true
+      }
+    },
+    
+    "logging": {
+      "level": "INFO",
+      "structured_logging": true,
+      "event_tracking": true,
+      "performance_logging": true,
+      "error_logging": true
+    },
+    
+    "maintenance": {
+      "model_retraining": {
+        "enabled": true,
+        "schedule": "daily",
+        "min_performance_threshold": 0.6,
+        "max_model_age_days": 30
+      },
+      "data_cleanup": {
+        "enabled": true,
+        "history_retention_days": 90,
+        "performance_data_retention_days": 365,
+        "cleanup_interval_hours": 24
+      },
+      "health_checks": {
+        "enabled": true,
+        "check_interval_minutes": 15,
+        "max_response_time_ms": 1000,
+        "memory_usage_threshold_mb": 512
+      }
+    }
+  }
+}

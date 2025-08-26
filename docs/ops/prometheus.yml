@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # No rules for now
+
+scrape_configs:
+  - job_name: 'mrben'
+    static_configs:
+      - targets: ['127.0.0.1:9100']
+    metrics_path: /prom
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  - job_name: 'mrben-dashboard'
+    static_configs:
+      - targets: ['127.0.0.1:8765']
+    metrics_path: /metrics
+    scrape_interval: 30s
+    scrape_timeout: 10s

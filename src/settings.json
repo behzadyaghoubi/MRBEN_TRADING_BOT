@@ -1,0 +1,15 @@
+{
+  "login": 1104123,
+  "password": "-4YcBgRd",
+  "server": "OxSecurities-Demo",
+  "symbol": "ADAUSD",
+  "timeframe": "M15",
+  "enabled": true,
+  "lot_min": 0.01,
+  "stop_loss_pips": 30,
+  "take_profit_pips": 60,
+  "risk_per_trade": 0.01,
+  "start_balance": 100000,
+  "max_open_trades": 3,
+  "ai_confidence_threshold": 0.6
+}

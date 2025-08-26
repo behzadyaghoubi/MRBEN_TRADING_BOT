@@ -1,0 +1,156 @@
+# MR BEN Trading System - Default Configuration
+# This file contains default settings that can be overridden by environment variables
+# and command-line arguments
+
+# Data and Storage Paths
+paths:
+  data_dir: "data/"
+  logs_dir: "logs/"
+  models_dir: "models/"
+  artifacts_dir: "artifacts/"
+  profile_dir: "artifacts/profile/"
+
+# Strategy Configuration
+strategy:
+  core: "sma_cross"
+  lookback:
+    fast: 20
+    slow: 50
+  price_action:
+    enabled: true
+    min_score: 0.55
+    patterns: ["engulf", "pin", "inside", "sweep"]
+  ml_filter:
+    enabled: true
+    model_path: "models/ml_filter_v1.onnx"
+    min_proba: 0.58
+  lstm_filter:
+    enabled: true
+    model_path: "models/lstm_dir_v1.onnx"
+    agree_min: 0.55
+
+# Confidence Configuration
+confidence:
+  base: 0.70
+  dynamic:
+    regime:
+      low_vol: 1.10
+      normal: 1.00
+      high_vol: 0.85
+    session:
+      asia: 0.90
+      london: 1.05
+      ny: 1.00
+    drawdown:
+      calm: 1.00
+      mild_dd: 0.90
+      deep_dd: 0.80
+  threshold:
+    min: 0.60
+    max: 0.75
+
+# ATR Configuration
+atr:
+  sl_mult: 1.6
+  tp_r:
+    tp1: 0.8
+    tp2: 1.5
+
+# Risk Management Parameters
+risk_management:
+  base_r_pct: 0.01  # 1% risk per trade
+  min_lot: 0.01
+  max_lot: 2.0
+  gates:
+    spread_max_pts: 180
+    exposure_max_positions: 2
+    daily_loss_pct: 2.0
+    consecutive_min: 2
+    cooldown_sec: 90
+
+# Session Configuration
+session:
+  enabled: true
+
+# Position Management
+position_management:
+  tp_split_enabled: true
+  breakeven_enabled: true
+  trailing_stop_enabled: true
+  trailing_update_interval: 15
+
+# Order Management
+order_management:
+  default_filling_mode: "ioc"
+  max_slippage_pts: 50
+  retry_count: 3
+  retry_delay: 1.0
+
+# Metrics Configuration
+metrics:
+  port: 8765
+  enabled: true
+
+# Emergency Stop Configuration
+emergency_stop:
+  enabled: true
+  halt_file_path: "halt.flag"
+  check_interval: 1.0
+  auto_recovery: false
+  recovery_delay: 300.0
+  monitoring_enabled: true
+  log_all_checks: false
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  
+# Market Regime Detection + Adaptive Confidence
+regime:
+  enabled: true
+  
+  # Lookback windows (in bars)
+  windows:
+    vol_atr: 14
+    adx: 14
+    return_ms: 20   # momentum horizon
+    rv: 60          # realized volatility window
+  
+  # Thresholds
+  thresholds:
+    trend_adx: 20.0        # ADX>20 => trending
+    vol_high: 0.012        # RV>1.2% => high vol (per window)
+    spread_wide_bp: 15.0   # wide spread in basis points
+    chop_z: 1.0            # |zscore|<1 and ADX<20 => range/chop
+  
+  # Smoothing parameters
+  smoothing:
+    method: "ema"          # or "majority"
+    alpha: 0.2             # EMA smoothing for regime state
+    min_dwell_bars: 10     # hysteresis: minimum bars to switch again
+  
+  # Adaptive confidence adjustments
+  adapt:
+    base_conf: 0.60
+    trend_bonus: 0.10
+    chop_penalty: 0.15
+    high_vol_penalty: 0.10
+    session_filters:
+      london: {open: "07:00", close: "11:00"}
+      ny: {open: "12:30", close: "16:00"}
+    min_conf_floor: 0.50
+    max_conf_cap: 0.90
+  
+# Trading Execution
+execution:
+  # Spread Management
+  max_spread_points: 200
+  spread_eps: 0.02
+  use_spread_ma: true
+  spread_ma_window: 5
+  spread_hysteresis_factor: 1.05
+  
+  # Order Management
+  deviation: 20
+  retry_attempts: 3
+  retry_delay_seconds: 5

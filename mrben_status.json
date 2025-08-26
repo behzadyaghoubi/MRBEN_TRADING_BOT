@@ -1,0 +1,10 @@
+{
+  "status": "running",
+  "last_update": "2025-08-25T18:19:29.303975",
+  "uptime": 1891.057327,
+  "components": 4,
+  "component_status": {
+    "regime_detector": "online",
+    "emergency_stop": "online"
+  }
+}

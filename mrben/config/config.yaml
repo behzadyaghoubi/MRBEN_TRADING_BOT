@@ -1,0 +1,92 @@
+app:
+  mode: pro
+  symbol: XAUUSD.PRO
+  timeframe: M15
+  bars: 600
+  magic: 20250721
+
+risk:
+  base_risk_pct: 0.0005     # 0.05% per trade
+  exposure_max_positions: 1
+  exposure_max_symbol: 1
+  daily_loss_limit_pct: 0.008   # 0.8%
+  max_trades_per_day: 8
+  sl_atr_mult:
+    LOW: 1.5
+    NORMAL: 1.9
+    HIGH: 2.3
+  tp_atr_mult:
+    LOW: 2.0
+    NORMAL: 2.2
+    HIGH: 2.0
+  tp_split:
+    enabled: true
+    tp1_r: 0.8
+    tp2_r: 1.5
+    tp1_share: 0.5
+    breakeven_after_tp1: true
+
+gates:
+  spread_max_pts: 120
+  consecutive_base: 1
+  cooldown_sec: 180
+  session:
+    asia: "A+ only"    # محدودکننده
+    london: "normal"
+    newyork: "normal"
+
+confidence:
+  dynamic_enabled: true
+  threshold_min: 0.68
+  threshold_max: 0.90
+
+price_action:
+  enabled: true
+  min_score: 0.60
+  require_confirm: true   # بدون تایید PA معامله نه
+  patterns: [ENGULF, PIN, INSIDE, SWEEP]
+
+ml_filter:
+  enabled: true
+  min_proba: 0.62
+  onnx_path: models/ml_filter.onnx
+
+lstm_filter:
+  enabled: true
+  agree_min: 0.60
+  timesteps: 50
+  keras_path: models/lstm_model.h5
+
+ensemble:
+  rule_weight: 0.30
+  ml_weight: 0.35
+  lstm_weight: 0.35
+  require_pa: true
+  vote_policy: "weighted_threshold"  # عبور از آستانه نهایی
+
+execution:
+  deviation_points: 200
+  filling_policy: "adaptive"    # با order_check
+  trailing:
+    enabled: true
+    step_points: 50
+    buffer_points: 20
+
+metrics:
+  prometheus:
+    enabled: true
+    port: 8765
+
+ab_test:
+  enabled: true
+  control: "sma_only"
+  pro: "ensemble_full"
+  paper_broker_latency_ms: [20, 80]
+
+agent:
+  enabled: true
+  mode: guard
+  error_rate_halt_per_min: 5
+
+emergency:
+  halt_flag: "halt.flag"

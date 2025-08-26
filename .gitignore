@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.pyo
+
+# Secrets
+.env
+.env.*
+
+# Build & dist
+build/
+dist/
+
+# Logs & data (اگر می‌خوای CSVها نسخه‌گذاری شوند، این خط *.csv را حذف کن)
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.csv
+
+# IDE
+.vscode/
+.idea/
+
+# Cursor & Aider artifacts
+.cursor/history/
+.aider*cache*/
+
+# Misc
+.DS_Store

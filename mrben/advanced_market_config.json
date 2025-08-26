@@ -1,0 +1,157 @@
+{
+  "enable_ml": true,
+  "enable_multi_timeframe": true,
+  "enable_pattern_recognition": true,
+  "market_regime": {
+    "detection_methods": ["basic", "ml_enhanced"],
+    "regime_types": [
+      "trending_up", "trending_down", "ranging_high", "ranging_low",
+      "volatile_breakout", "volatile_mean_reversion", "low_volatility", "high_volatility"
+    ],
+    "confidence_threshold": 0.7,
+    "regime_change_threshold": 0.3,
+    "analysis_window": 100
+  },
+  "multi_timeframe": {
+    "primary_timeframe": "15m",
+    "secondary_timeframes": ["1h", "4h", "1d"],
+    "trend_alignment_threshold": 0.8,
+    "momentum_divergence_threshold": 0.6,
+    "correlation_threshold": 0.7,
+    "aggregation_methods": ["simple", "weighted", "exponential"]
+  },
+  "pattern_recognition": {
+    "enabled_patterns": [
+      "support_resistance", "trend_line", "channel", "triangle",
+      "head_shoulders", "double_top_bottom", "flag_pennant", "wedge"
+    ],
+    "confidence_threshold": 0.6,
+    "completion_threshold": 0.8,
+    "pattern_timeout_hours": 48,
+    "min_pattern_bars": 10
+  },
+  "volatility_analysis": {
+    "atr_periods": [14, 20, 50],
+    "volatility_thresholds": {
+      "low": 0.2,
+      "medium": 0.5,
+      "high": 0.8
+    },
+    "regime_volatility_mapping": {
+      "low_volatility": [0.0, 0.3],
+      "normal_volatility": [0.3, 0.7],
+      "high_volatility": [0.7, 1.0]
+    }
+  },
+  "trend_analysis": {
+    "moving_averages": [20, 50, 100, 200],
+    "trend_strength_thresholds": {
+      "weak": 0.3,
+      "moderate": 0.6,
+      "strong": 0.8
+    },
+    "momentum_indicators": ["rsi", "macd", "stochastic"],
+    "momentum_threshold": 0.6
+  },
+  "support_resistance": {
+    "identification_methods": ["pivot_points", "fibonacci", "moving_averages", "volume_profile"],
+    "level_consolidation_threshold": 0.1,
+    "breakout_confirmation_bars": 3,
+    "level_strength_threshold": 0.7
+  },
+  "ml_models": {
+    "regime_classifier": {
+      "n_estimators": 100,
+      "max_depth": 10,
+      "random_state": 42,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2
+    },
+    "volatility_detector": {
+      "contamination": 0.1,
+      "n_estimators": 100,
+      "random_state": 42
+    },
+    "pattern_classifier": {
+      "n_estimators": 100,
+      "max_depth": 8,
+      "random_state": 42,
+      "min_samples_split": 3,
+      "min_samples_leaf": 1
+    },
+    "training": {
+      "auto_training": true,
+      "training_interval_hours": 24,
+      "min_training_samples": 100,
+      "max_training_samples": 10000,
+      "validation_split": 0.2
+    }
+  },
+  "feature_engineering": {
+    "price_features": ["open", "high", "low", "close", "volume"],
+    "technical_indicators": ["sma", "ema", "rsi", "macd", "bollinger_bands"],
+    "market_context_features": ["session", "regime", "spread", "equity", "open_positions"],
+    "feature_scaling": "standard",
+    "feature_selection": "correlation_based"
+  },
+  "timeframe_analysis": {
+    "data_aggregation": {
+      "method": "ohlc",
+      "volume_aggregation": "sum",
+      "price_aggregation": "vwap"
+    },
+    "indicator_calculation": {
+      "moving_averages": true,
+      "oscillators": true,
+      "momentum": true,
+      "volatility": true
+    },
+    "trend_alignment": {
+      "weighted_scoring": true,
+      "timeframe_weights": {
+        "15m": 0.3,
+        "1h": 0.4,
+        "4h": 0.2,
+        "1d": 0.1
+      }
+    }
+  },
+  "pattern_analysis": {
+    "detection_algorithms": {
+      "support_resistance": "pivot_points",
+      "trend_line": "linear_regression",
+      "channel": "parallel_lines",
+      "triangle": "converging_lines",
+      "head_shoulders": "peak_valley_analysis",
+      "double_top_bottom": "peak_valley_analysis",
+      "flag_pennant": "consolidation_breakout",
+      "wedge": "converging_lines"
+    },
+    "validation_methods": ["price_action", "volume_confirmation", "momentum_divergence"],
+    "completion_metrics": ["price_target", "time_target", "pattern_strength"]
+  },
+  "performance_tracking": {
+    "enabled": true,
+    "metrics_window": 100,
+    "accuracy_threshold": 0.7,
+    "retraining_threshold": 0.6,
+    "track_regime_accuracy": true,
+    "track_pattern_accuracy": true,
+    "track_volatility_accuracy": true
+  },
+  "notifications": {
+    "enabled": true,
+    "regime_change_alerts": true,
+    "pattern_completion_alerts": true,
+    "volatility_spike_alerts": true,
+    "trend_reversal_alerts": true,
+    "support_resistance_breakouts": true
+  },
+  "integration": {
+    "risk_analytics": true,
+    "position_management": true,
+    "metrics_exposition": true,
+    "logging_level": "INFO",
+    "debug_mode": false
+  }
+}

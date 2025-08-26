@@ -1,0 +1,16 @@
+{
+  "alpha": 0.1,
+  "nonconf_threshold": 0.85,
+  "features": [
+    "close",
+    "ret",
+    "sma_20",
+    "sma_50",
+    "atr",
+    "rsi",
+    "macd",
+    "macd_signal",
+    "hour",
+    "dow"
+  ]
+}

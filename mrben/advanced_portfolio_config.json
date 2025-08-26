@@ -1,0 +1,352 @@
+{
+  "advanced_portfolio": {
+    "enabled": true,
+    "version": "1.0.0",
+    "description": "Advanced Portfolio Management System Configuration",
+    
+    "core_settings": {
+      "enable_ml": true,
+      "enable_correlation": true,
+      "enable_optimization": true,
+      "enable_rebalancing": true,
+      "enable_risk_monitoring": true,
+      "max_portfolio_history": 10000,
+      "max_risk_history": 5000,
+      "max_allocation_history": 5000
+    },
+    
+    "ml_models": {
+      "risk_predictor": {
+        "type": "RandomForestRegressor",
+        "n_estimators": 100,
+        "max_depth": 10,
+        "random_state": 42,
+        "min_samples_split": 5,
+        "min_samples_leaf": 2
+      },
+      "correlation_predictor": {
+        "type": "RandomForestRegressor",
+        "n_estimators": 100,
+        "max_depth": 8,
+        "random_state": 42,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1
+      },
+      "allocation_optimizer": {
+        "type": "RandomForestRegressor",
+        "n_estimators": 100,
+        "max_depth": 12,
+        "random_state": 42,
+        "min_samples_split": 4,
+        "min_samples_leaf": 2
+      },
+      "model_training": {
+        "min_training_samples": 20,
+        "retrain_interval_hours": 24,
+        "performance_threshold": 0.6,
+        "enable_online_learning": true,
+        "batch_size": 100
+      }
+    },
+    
+    "portfolio_strategies": {
+      "equal_weight": {
+        "enabled": true,
+        "description": "Equal weight allocation across all assets",
+        "rebalancing_threshold": 0.05,
+        "max_assets": 50
+      },
+      "risk_parity": {
+        "enabled": true,
+        "description": "Risk parity allocation based on asset risk contribution",
+        "risk_target": "equal",
+        "volatility_target": 0.15,
+        "rebalancing_threshold": 0.03
+      },
+      "max_sharpe": {
+        "enabled": true,
+        "description": "Maximum Sharpe ratio optimization",
+        "risk_free_rate": 0.02,
+        "return_estimation_period": 252,
+        "risk_estimation_period": 252
+      },
+      "min_variance": {
+        "enabled": true,
+        "description": "Minimum variance portfolio optimization",
+        "constraint_type": "long_only",
+        "max_single_weight": 0.4,
+        "min_single_weight": 0.01
+      },
+      "black_litterman": {
+        "enabled": true,
+        "description": "Black-Litterman model for view integration",
+        "confidence_level": 0.8,
+        "tau": 0.05,
+        "risk_aversion": 2.5
+      },
+      "dynamic_allocation": {
+        "enabled": true,
+        "description": "Dynamic allocation based on market conditions",
+        "regime_detection": true,
+        "momentum_factor": true,
+        "volatility_adjustment": true
+      }
+    },
+    
+    "allocation_methods": {
+      "static": {
+        "enabled": true,
+        "description": "Static allocation with periodic rebalancing",
+        "rebalancing_frequency": "monthly",
+        "threshold": 0.05
+      },
+      "dynamic": {
+        "enabled": true,
+        "description": "Dynamic allocation with continuous monitoring",
+        "update_frequency": "daily",
+        "momentum_lookback": 20,
+        "volatility_lookback": 60
+      },
+      "rebalancing": {
+        "enabled": true,
+        "description": "Event-driven rebalancing",
+        "threshold": 0.05,
+        "max_rebalancing_frequency": "weekly",
+        "transaction_cost_consideration": true
+      },
+      "momentum_based": {
+        "enabled": true,
+        "description": "Momentum-based allocation adjustments",
+        "momentum_period": 20,
+        "momentum_threshold": 0.02,
+        "max_momentum_weight": 0.3
+      },
+      "regime_based": {
+        "enabled": true,
+        "description": "Regime-based allocation strategies",
+        "regime_detection_method": "volatility_based",
+        "regime_thresholds": {
+          "low_volatility": 0.15,
+          "normal_volatility": 0.25,
+          "high_volatility": 0.35
+        }
+      },
+      "ml_optimized": {
+        "enabled": true,
+        "description": "Machine learning optimized allocation",
+        "feature_engineering": true,
+        "cross_validation": true,
+        "ensemble_methods": true
+      }
+    },
+    
+    "risk_management": {
+      "risk_metrics": {
+        "volatility": {
+          "enabled": true,
+          "calculation_period": 252,
+          "annualization_factor": 252
+        },
+        "var": {
+          "enabled": true,
+          "confidence_level": 0.95,
+          "calculation_period": 252
+        },
+        "cvar": {
+          "enabled": true,
+          "confidence_level": 0.95,
+          "calculation_period": 252
+        },
+        "max_drawdown": {
+          "enabled": true,
+          "calculation_method": "peak_to_trough",
+          "min_drawdown_threshold": 0.02
+        },
+        "sharpe_ratio": {
+          "enabled": true,
+          "risk_free_rate": 0.02,
+          "calculation_period": 252
+        },
+        "sortino_ratio": {
+          "enabled": true,
+          "risk_free_rate": 0.02,
+          "downside_deviation_threshold": 0.0
+        },
+        "calmar_ratio": {
+          "enabled": true,
+          "risk_free_rate": 0.02,
+          "max_drawdown_period": 252
+        }
+      },
+      "risk_limits": {
+        "max_portfolio_volatility": 0.25,
+        "max_var_95": 0.15,
+        "max_drawdown": 0.20,
+        "min_sharpe_ratio": 0.5,
+        "max_correlation": 0.7,
+        "min_diversification": 0.3
+      },
+      "risk_monitoring": {
+        "real_time_monitoring": true,
+        "alert_thresholds": {
+          "volatility_breach": 0.8,
+          "var_breach": 0.8,
+          "drawdown_breach": 0.8
+        },
+        "reporting_frequency": "daily"
+      }
+    },
+    
+    "correlation_analysis": {
+      "correlation_calculation": {
+        "method": "pearson",
+        "lookback_period": 252,
+        "min_data_points": 60,
+        "correlation_threshold": 0.7
+      },
+      "correlation_grouping": {
+        "enabled": true,
+        "grouping_method": "hierarchical_clustering",
+        "max_correlation_within_group": 0.8,
+        "min_group_size": 2
+      },
+      "dynamic_correlation": {
+        "enabled": true,
+        "update_frequency": "daily",
+        "regime_adjustment": true,
+        "volatility_adjustment": true
+      }
+    },
+    
+    "rebalancing": {
+      "rebalancing_rules": {
+        "threshold_based": {
+          "enabled": true,
+          "weight_threshold": 0.05,
+          "risk_threshold": 0.03
+        },
+        "time_based": {
+          "enabled": true,
+          "frequency": "monthly",
+          "calendar_adjustment": true
+        },
+        "event_based": {
+          "enabled": true,
+          "market_regime_change": true,
+          "volatility_spike": true,
+          "correlation_breakdown": true
+        }
+      },
+      "transaction_costs": {
+        "consider_transaction_costs": true,
+        "fixed_cost_per_trade": 1.0,
+        "variable_cost_rate": 0.001,
+        "min_trade_size": 100.0
+      },
+      "rebalancing_constraints": {
+        "max_trades_per_rebalancing": 10,
+        "max_weight_change_per_asset": 0.2,
+        "min_trade_size": 0.01,
+        "tax_consideration": false
+      }
+    },
+    
+    "performance_tracking": {
+      "metrics": {
+        "return_metrics": true,
+        "risk_metrics": true,
+        "risk_adjusted_metrics": true,
+        "allocation_metrics": true,
+        "rebalancing_metrics": true
+      },
+      "benchmark_comparison": {
+        "enabled": true,
+        "benchmarks": ["SPY", "QQQ", "IWM"],
+        "comparison_metrics": ["return", "volatility", "sharpe_ratio", "max_drawdown"]
+      },
+      "attribution_analysis": {
+        "enabled": true,
+        "brinson_model": true,
+        "factor_attribution": true,
+        "risk_attribution": true
+      }
+    },
+    
+    "notifications": {
+      "enabled": true,
+      "portfolio_alerts": {
+        "risk_limit_breaches": true,
+        "rebalancing_events": true,
+        "correlation_changes": true,
+        "performance_milestones": true
+      },
+      "system_alerts": {
+        "model_performance_drops": true,
+        "data_quality_issues": true,
+        "system_errors": true
+      },
+      "reporting": {
+        "daily_summary": true,
+        "weekly_analysis": true,
+        "monthly_review": true,
+        "quarterly_performance": true
+      }
+    },
+    
+    "integration": {
+      "position_management": {
+        "enabled": true,
+        "position_sync": true,
+        "weight_reconciliation": true,
+        "pnl_tracking": true
+      },
+      "risk_management": {
+        "enabled": true,
+        "risk_limit_enforcement": true,
+        "correlation_monitoring": true,
+        "volatility_tracking": true
+      },
+      "order_management": {
+        "enabled": true,
+        "rebalancing_orders": true,
+        "trade_execution": true,
+        "order_tracking": true
+      },
+      "market_data": {
+        "enabled": true,
+        "price_feeds": true,
+        "volatility_data": true,
+        "correlation_data": true
+      }
+    },
+    
+    "logging": {
+      "level": "INFO",
+      "structured_logging": true,
+      "event_tracking": true,
+      "performance_logging": true,
+      "error_logging": true
+    },
+    
+    "maintenance": {
+      "model_retraining": {
+        "enabled": true,
+        "schedule": "weekly",
+        "min_performance_threshold": 0.6,
+        "max_model_age_days": 30
+      },
+      "data_cleanup": {
+        "enabled": true,
+        "history_retention_days": 90,
+        "performance_data_retention_days": 365,
+        "cleanup_interval_hours": 24
+      },
+      "health_checks": {
+        "enabled": true,
+        "check_interval_minutes": 15,
+        "max_response_time_ms": 1000,
+        "memory_usage_threshold_mb": 512
+      }
+    }
+  }
+}

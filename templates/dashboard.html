@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>📊 داشبورد MR BEN</title>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            direction: rtl;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        h2 {
+            color: #333;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .signal {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .buy { color: green; }
+        .sell { color: red; }
+    </style>
+</head>
+<body>
+    <h2>✅ داشبورد تحلیل لحظه‌ای طلا - MR BEN</h2>
+
+    <div class="card">
+        <h3>📉 قیمت لحظه‌ای</h3>
+        <p>🕓 زمان: {{ price_info.time }}</p>
+        <p>💰 Bid: {{ price_info.bid }} | Ask: {{ price_info.ask }}</p>
+    </div>
+
+    <div class="card">
+        <h3>📊 تحلیل تکنیکال</h3>
+        <p>قیمت: {{ technical_info.price }}</p>
+        <p>RSI: {{ technical_info.rsi }}</p>
+        <p>MACD: {{ technical_info.macd }}</p>
+        <p>Signal: {{ technical_info.signal }}</p>
+    </div>
+
+    <div class="card">
+        <h3>🤖 تحلیل AI</h3>
+        <p>{{ ai_result }}</p>
+        <p>🔍 اعتماد AI: {{ ai_confidence }}</p>
+    </div>
+
+    <div class="card">
+        <h3>📈 پیش‌بینی قیمت آینده</h3>
+        <p>🔮 قیمت آینده (LSTM): {{ predicted_price }}</p>
+    </div>
+
+    <div class="card">
+        <h3>🔍 پرایس اکشن</h3>
+        <p>Engulfing: {{ engulfing_pattern }}</p>
+        <p>Pin Bar: {{ pinbar_pattern }}</p>
+        <p>Breakout: {{ breakout_pattern }}</p>
+    </div>
+
+    <div class="card">
+        <h3>🚦 سیگنال نهایی</h3>
+        {% if trade_signal.type != "NO SIGNAL" %}
+            <p class="signal {{ 'buy' if trade_signal.type == 'BUY' else 'sell' }}">
+                {{ trade_signal.type }} @ {{ trade_signal.entry }}
+                🎯 TP: {{ trade_signal.tp }} | 🛡 SL: {{ trade_signal.sl }}
+            </p>
+        {% else %}
+            <p class="signal">❌ سیگنالی صادر نشد.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

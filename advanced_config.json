@@ -1,0 +1,56 @@
+{
+  "retrain_interval_days": 3,
+  "ensemble_weights": [0.4, 0.3, 0.3],
+  "retrain_threshold": 0.7,
+  "max_hold_ratio": 0.6,
+  "min_confidence": 0.6,
+  "feature_columns": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "tick_volume",
+    "rsi",
+    "macd",
+    "macd_signal",
+    "atr",
+    "sma_20",
+    "sma_50",
+    "hour",
+    "day_of_week",
+    "session",
+    "volatility",
+    "price_change",
+    "volume_ratio",
+    "bb_position",
+    "stoch_k",
+    "stoch_d"
+  ],
+  "model_paths": {
+    "lstm": "models/advanced_lstm_model.h5",
+    "ml_filter": "models/advanced_ml_filter.joblib",
+    "ensemble": "models/advanced_ensemble.joblib"
+  },
+  "trading_sessions": {
+    "Asia": {"start": 0, "end": 8},
+    "London": {"start": 8, "end": 16},
+    "NY": {"start": 16, "end": 24}
+  },
+  "performance_monitoring": {
+    "drift_check_interval": 100,
+    "confidence_threshold": 0.6,
+    "hold_ratio_threshold": 0.6,
+    "retrain_trigger_count": 3
+  },
+  "logging": {
+    "market_context": true,
+    "individual_predictions": true,
+    "performance_metrics": true,
+    "auto_retrain_events": true
+  },
+  "backup": {
+    "auto_backup": true,
+    "backup_retention_days": 30,
+    "max_backups": 10
+  }
+} 

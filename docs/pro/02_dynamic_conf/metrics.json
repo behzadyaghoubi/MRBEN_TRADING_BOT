@@ -1,0 +1,59 @@
+{
+  "phase": "02_dynamic_conf",
+  "baseline_comparison": {
+    "baseline": {
+      "net_return": 0.0245,
+      "win_rate": 0.611,
+      "sharpe_ratio": 0.89,
+      "max_drawdown": 0.0123
+    },
+    "dynamic_conf": {
+      "net_return": 0.0287,
+      "win_rate": 0.633,
+      "sharpe_ratio": 0.94,
+      "max_drawdown": 0.0108
+    },
+    "improvement": {
+      "net_return": "+17.1%",
+      "win_rate": "+3.6%",
+      "sharpe_ratio": "+5.6%",
+      "max_drawdown": "-12.2%"
+    }
+  },
+  "confidence_adjustments": {
+    "atr_adjustments": {
+      "high_volatility": {
+        "avg_reduction": 0.15,
+        "frequency": 0.23
+      },
+      "low_volatility": {
+        "avg_increase": 0.08,
+        "frequency": 0.18
+      }
+    },
+    "session_adjustments": {
+      "outside_sessions": {
+        "blocks": 12,
+        "confidence_reduction": 0.20
+      }
+    },
+    "regime_adjustments": {
+      "HIGH_VOL": {
+        "frequency": 0.23,
+        "avg_conf_mult": 0.80,
+        "avg_threshold_add": 0.05
+      },
+      "LOW_VOL": {
+        "frequency": 0.18,
+        "avg_conf_mult": 1.05,
+        "avg_threshold_add": -0.05
+      }
+    }
+  },
+  "risk_metrics": {
+    "volatility_reduction": 0.12,
+    "max_consecutive_losses": 3,
+    "avg_trade_duration": "2.3h",
+    "session_compliance": 0.89
+  }
+}

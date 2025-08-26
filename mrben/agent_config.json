@@ -1,0 +1,56 @@
+{
+  "enable_intervention": true,
+  "risk_threshold": 0.8,
+  "confidence_threshold": 0.7,
+  "monitoring_interval": 10.0,
+  "max_interventions_per_hour": 10,
+  "max_warnings_per_hour": 20,
+  "performance_thresholds": {
+    "critical": 0.3,
+    "high": 0.5,
+    "medium": 0.7,
+    "low": 0.9
+  },
+  "anomaly_detection": {
+    "enabled": true,
+    "volatility_threshold": 100,
+    "spread_threshold": 50,
+    "equity_threshold": 5000,
+    "consecutive_signal_threshold": 3
+  },
+  "intervention_levels": {
+    "monitor": {
+      "enabled": true,
+      "log_only": true
+    },
+    "warn": {
+      "enabled": true,
+      "log_only": false,
+      "notify": true
+    },
+    "intervene": {
+      "enabled": true,
+      "log_only": false,
+      "notify": true,
+      "block_execution": false
+    },
+    "block": {
+      "enabled": false,
+      "log_only": false,
+      "notify": true,
+      "block_execution": true
+    }
+  },
+  "optimization": {
+    "enabled": true,
+    "auto_adjust_thresholds": false,
+    "performance_analysis_interval": 3600,
+    "recommendation_threshold": 0.6
+  },
+  "notifications": {
+    "enabled": true,
+    "channels": ["log", "console"],
+    "webhook_url": null,
+    "email": null
+  }
+}

@@ -1,0 +1,42 @@
+MR BEN ML Filter Training Report
+========================================
+Training Date: 2025-08-05 19:28:34.916971
+Model Type: XGBoost Classifier
+Dataset Size: 400 validation samples
+Features: 10
+
+========================================
+CLASSIFICATION REPORT:
+              precision    recall  f1-score   support
+
+   SELL/HOLD       0.99      0.99      0.99       363
+         BUY       0.88      0.95      0.91        37
+
+    accuracy                           0.98       400
+   macro avg       0.93      0.97      0.95       400
+weighted avg       0.98      0.98      0.98       400
+
+========================================
+CONFUSION MATRIX:
+[[358   5]
+ [  2  35]]
+========================================
+CONFIDENCE STATISTICS:
+Mean: 0.9841
+Std: 0.0602
+Min: 0.5081
+Max: 0.9999
+Median: 0.9987
+
+========================================
+FEATURE IMPORTANCE:
+open: 0.0154
+high: 0.0142
+low: 0.0141
+close: 0.0146
+sma_20: 0.0104
+sma_50: 0.0124
+rsi: 0.6495
+macd: 0.1165
+macd_signal: 0.1367
+macd_hist: 0.0164
