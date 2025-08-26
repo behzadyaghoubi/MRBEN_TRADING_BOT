@@ -25,7 +25,6 @@ except ImportError:
 try:
     # Try absolute imports from src root
     from ai.system import MRBENAdvancedAISystem
-    from src.config.settings import MT5Config
     from core.exceptions import TradingSystemError
     from core.metrics import PerformanceMetrics
     from data.manager import MT5DataManager
@@ -34,6 +33,7 @@ try:
     from risk.manager import EnhancedRiskManager
     from risk_manager.atr_sl_tp import calc_sltp_from_atr
     from signals.multi_tf_rsi_macd import analyze_multi_tf_rsi_macd
+    from src.config.settings import MT5Config
     from utils.helpers import (
         _apply_soft_gate,
         _rolling_atr,

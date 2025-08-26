@@ -13,8 +13,8 @@ from datetime import datetime, timedelta
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.config.settings import MT5Config
 from core.trader import MT5LiveTrader
+from src.config.settings import MT5Config
 
 
 def setup_logging(level: str = "INFO") -> logging.Logger:

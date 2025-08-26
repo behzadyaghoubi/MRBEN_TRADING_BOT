@@ -20,6 +20,7 @@ def connect():
     print("✅ اتصال به متاتریدر برقرار شد")
     return True
 
+
 # دریافت قیمت و تبدیل به دیتافریم
 def get_price_data(symbol="XAUUSD", timeframe=mt5.TIMEFRAME_M5, bars=100):
     rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
@@ -30,10 +31,12 @@ def get_price_data(symbol="XAUUSD", timeframe=mt5.TIMEFRAME_M5, bars=100):
     df["time"] = pd.to_datetime(df["time"], unit="s")
     return df
 
+
 # مسیر فایل برای ذخیره سیگنال‌های اجرا شده
 log_path = "live_trades.csv"
 if not os.path.exists(log_path):
     pd.DataFrame(columns=["time", "symbol", "signal", "price"]).to_csv(log_path, index=False)
+
 
 # گرفتن آخرین سیگنال ثبت شده
 def get_last_signal():
@@ -43,6 +46,7 @@ def get_last_signal():
     except:
         return None
 
+
 # ذخیره سیگنال جدید
 def log_trade(symbol, signal, price):
     new_row = {"time": datetime.now(), "symbol": symbol, "signal": signal, "price": price}
@@ -50,8 +54,12 @@ def log_trade(symbol, signal, price):
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(log_path, index=False)
 
+
 # ساخت شیء فیلتر سیگنال (در صورت نیاز)
-ai_filter = AISignalFilter(model_path="mrben_ai_signal_filter_xgb.joblib", model_type="joblib", threshold=0.55)
+ai_filter = AISignalFilter(
+    model_path="mrben_ai_signal_filter_xgb.joblib", model_type="joblib", threshold=0.55
+)
+
 
 # حلقه اصلی اجرای ربات
 def run_live_bot():
@@ -75,7 +83,11 @@ def run_live_bot():
             # فیلتر سیگنال با مدل ML (در صورت نیاز)
             filtered = ai_filter.filter_signal(signal)
             if filtered in [2, 0] and filtered != last_signal:  # BUY=2, SELL=0
-                price = mt5.symbol_info_tick(symbol).ask if filtered == 2 else mt5.symbol_info_tick(symbol).bid
+                price = (
+                    mt5.symbol_info_tick(symbol).ask
+                    if filtered == 2
+                    else mt5.symbol_info_tick(symbol).bid
+                )
                 send_order(symbol, "BUY" if filtered == 2 else "SELL", price, df)
                 log_trade(symbol, "BUY" if filtered == 2 else "SELL", price)
                 last_signal = filtered
@@ -86,6 +98,7 @@ def run_live_bot():
             print(f"❌ خطا در حلقه اجرا: {e}")
 
         time.sleep(15)  # فاصله بررسی سیگنال بعدی
+
 
 if __name__ == "__main__":
     if connect():
