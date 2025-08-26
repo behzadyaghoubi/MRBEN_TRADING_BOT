@@ -45,6 +45,7 @@ exclude = [
     "tests/.*",
     "^config\\.py$",              # exclude top-level config.py
     "^mrben/.*",                  # exclude legacy duplicate package
+    "^ml/.*",                     # exclude ml directory conflicts
 ]
 
 [tool.pytest.ini_options]
