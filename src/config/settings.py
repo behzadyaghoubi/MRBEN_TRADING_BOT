@@ -30,8 +30,8 @@ class MT5Config:
     MAGIC: int = 20250721
     DEMO_MODE: bool = True
 
-    # Credentials
-    LOGIN: int = 12345
+    # Credentials (as strings to match test expectations)
+    LOGIN: str = "12345"
     PASSWORD: str = "test_password"
     SERVER: str = "test_server"
 
@@ -71,6 +71,11 @@ class MT5Config:
             self.SESSIONS = ["London", "NY"]
         if self.config_data is None:
             self.config_data = {
+                "credentials": {
+                    "login": self.LOGIN,
+                    "password": self.PASSWORD,
+                    "server": self.SERVER,
+                },
                 "risk": {"sl_atr_multiplier": 1.6, "tp_atr_multiplier": 3.0},
                 "advanced": {"swing_lookback": 12, "dynamic_spread_atr_frac": 0.10},
                 "execution": {
