@@ -25,7 +25,7 @@ except ImportError:
 try:
     # Try absolute imports from src root
     from ai.system import MRBENAdvancedAISystem
-    from config.settings import MT5Config
+    from src.config.settings import MT5Config
     from core.exceptions import TradingSystemError
     from core.metrics import PerformanceMetrics
     from data.manager import MT5DataManager
