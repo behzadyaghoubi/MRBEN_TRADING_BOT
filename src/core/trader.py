@@ -950,7 +950,9 @@ class MT5LiveTrader:
                 self.logger.info("Multi-timeframe consensus: NEUTRAL - skipping trade")
                 return False
             elif mtf_consensus != ("buy" if signal > 0 else "sell"):
-                self.logger.info(f"Multi-timeframe consensus: {mtf_consensus} - signal mismatch, skipping trade")
+                self.logger.info(
+                    f"Multi-timeframe consensus: {mtf_consensus} - signal mismatch, skipping trade"
+                )
                 return False
 
             # Get current market data
@@ -974,10 +976,14 @@ class MT5LiveTrader:
                 # Calculate ATR from the data
                 atr_series = compute_atr(df, self.atr_period)
                 atr_value = atr_series.iloc[-1] if not atr_series.empty else None
-                self.sltp_logger.debug(f"ATR calculated from {len(df)} candles, period: {self.atr_period}")
+                self.sltp_logger.debug(
+                    f"ATR calculated from {len(df)} candles, period: {self.atr_period}"
+                )
             else:
                 atr_value = None
-                self.sltp_logger.warning("Insufficient data for ATR calculation, using fallback percentages")
+                self.sltp_logger.warning(
+                    "Insufficient data for ATR calculation, using fallback percentages"
+                )
 
             # Use new ATR-based SL/TP calculator
             sltp_result = calc_sltp_from_atr(
@@ -1091,7 +1097,7 @@ class MT5LiveTrader:
         try:
             # Collect data for all timeframes
             timeframe_data = {}
-            
+
             for tf in self.mtf_timeframes:
                 try:
                     # Convert timeframe string to minutes for data fetching
@@ -1099,7 +1105,7 @@ class MT5LiveTrader:
                     if tf_minutes is None:
                         self.logger.warning(f"Unknown timeframe: {tf}, skipping")
                         continue
-                    
+
                     # Fetch data for this timeframe
                     df = self.data_manager.get_latest_data(100, tf_minutes)  # Get 100 bars
                     if df is not None and len(df) >= 50:  # Ensure sufficient data
@@ -1109,11 +1115,11 @@ class MT5LiveTrader:
                 except Exception as e:
                     self.logger.warning(f"Error fetching data for timeframe {tf}: {e}")
                     continue
-            
+
             if len(timeframe_data) < 2:
                 self.logger.warning("Insufficient timeframe data for consensus check")
                 return "neutral"
-            
+
             # Analyze RSI/MACD for each timeframe
             signals = analyze_multi_tf_rsi_macd(
                 timeframe_data,
@@ -1124,15 +1130,15 @@ class MT5LiveTrader:
                 rsi_overbought=self.mtf_rsi_overbought,
                 rsi_oversold=self.mtf_rsi_oversold,
             )
-            
+
             # Count buy/sell signals
             buy_count = sum(1 for signal in signals.values() if signal == "buy")
             sell_count = sum(1 for signal in signals.values() if signal == "sell")
-            
+
             # Log per-timeframe signals
             tf_signals = ", ".join([f"{tf}={signal}" for tf, signal in signals.items()])
             self.logger.info(f"Multi-timeframe signals: {tf_signals}")
-            
+
             # Determine consensus
             if buy_count >= self.mtf_min_agreement:
                 consensus = "buy"
@@ -1140,22 +1146,21 @@ class MT5LiveTrader:
                 consensus = "sell"
             else:
                 consensus = "neutral"
-            
+
             # Log final consensus
-            self.logger.info(f"Multi-timeframe consensus: {consensus} (buy={buy_count}, sell={sell_count}, min_agreement={self.mtf_min_agreement})")
-            
+            self.logger.info(
+                f"Multi-timeframe consensus: {consensus} (buy={buy_count}, sell={sell_count}, min_agreement={self.mtf_min_agreement})"
+            )
+
             return consensus
-            
+
         except Exception as e:
             self.logger.error(f"Error in multi-timeframe consensus check: {e}")
             return "neutral"
-    
+
     def _convert_timeframe_to_minutes(self, timeframe: str) -> int | None:
         """Convert timeframe string to minutes."""
-        tf_map = {
-            "M1": 1, "M5": 5, "M15": 15, "M30": 30,
-            "H1": 60, "H4": 240, "D1": 1440
-        }
+        tf_map = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
         return tf_map.get(timeframe)
 
     def _update_trailing_stops(self) -> None:

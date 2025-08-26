@@ -1,5 +1,3 @@
-import types
-from src.risk_manager.atr_sl_tp import SLTPResult, calc_sltp_from_atr
 # Import a function/class from your live/sim execution layer that prepares order params:
 # Example (adjust import to your project):
 # from core.trader import prepare_order_params

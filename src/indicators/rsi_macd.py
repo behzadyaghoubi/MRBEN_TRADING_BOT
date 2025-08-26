@@ -21,7 +21,9 @@ def compute_rsi(df: pd.DataFrame, period: int = 14) -> pd.Series:
     return rsi
 
 
-def compute_macd(df: pd.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9) -> tuple[pd.Series, pd.Series, pd.Series]:
+def compute_macd(
+    df: pd.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9
+) -> tuple[pd.Series, pd.Series, pd.Series]:
     """
     Compute MACD and signal line.
     Expects DataFrame with 'close' column.
