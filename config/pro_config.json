@@ -21,7 +21,13 @@
     "min_lot": 0.01,
     "max_lot": 2.0,
     "max_open_trades": 2,
-    "max_daily_loss": 0.02
+    "max_daily_loss": 0.02,
+    "atr_period": 14,
+    "rr": 1.5,
+    "sl_k": 1.0,
+    "tp_k": 1.5,
+    "fallback_sl_pct": 0.005,
+    "fallback_tp_pct": 0.0075
   },
   "session": {
     "timezone": "Etc/UTC",
