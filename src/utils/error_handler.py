@@ -1,30 +1,50 @@
-"""
-Error handling utilities for MR BEN Trading System.
-"""
+from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+
+try:
+    from core.metrics import PerformanceMetrics
+except Exception:
+    PerformanceMetrics = None  # type: ignore
+
+
+def _get_logger(logger: logging.Logger | None) -> logging.Logger:
+    if logger is not None:
+        return logger
+    import logging as _logging
+
+    lg = _logging.getLogger("test:error_handler")
+    if not lg.handlers:
+        h = _logging.StreamHandler()
+        fmt = _logging.Formatter("%(levelname)s %(name)s:%(lineno)d %(message)s")
+        h.setFormatter(fmt)
+        lg.addHandler(h)
+        lg.setLevel(_logging.INFO)
+    return lg
 
 
 @contextmanager
-def error_handler(logger: logging.Logger, operation: str, fallback_value: Any | None = None):
+def error_handler(
+    op_name: str, logger: logging.Logger | None = None, metrics: PerformanceMetrics | None = None
+) -> Generator[None, None, None]:
     """
-    Context manager for consistent error handling.
-
-    Args:
-        logger: Logger instance for error reporting
-        operation: Description of the operation being performed
-        fallback_value: Value to yield if an error occurs
-
-    Yields:
-        The fallback value if an error occurs, otherwise nothing
+    Usage:
+        with error_handler("fetch-prices", logger, metrics):
+            dangerous_call()
+    On exception: logs with stack, increments metrics.error_count, and re-raises.
     """
+    lg = _get_logger(logger)
     try:
         yield
-    except Exception as e:
-        logger.error(f"Error in {operation}: {e}")
-        if fallback_value is not None:
-            yield fallback_value
-        else:
-            raise
+    except Exception as e:  # no bare except
+        lg.error("Error in %s: %s", op_name, e, exc_info=True)
+        if metrics is not None and hasattr(metrics, "inc_error"):
+            try:
+                metrics.inc_error(e)
+            except Exception:
+                # metrics failure must not swallow original error
+                pass
+        # IMPORTANT: re-raise so that contextmanager "stops after throw"
+        raise
