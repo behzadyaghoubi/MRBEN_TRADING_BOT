@@ -78,7 +78,7 @@ def run_live_bot():
                 price = mt5.symbol_info_tick(symbol).ask if filtered == 2 else mt5.symbol_info_tick(symbol).bid
                 send_order(symbol, "BUY" if filtered == 2 else "SELL", price, df)
                 log_trade(symbol, "BUY" if filtered == 2 else "SELL", price)
-                    last_signal = filtered
+                last_signal = filtered
                 print(f"🚀 سیگنال {('BUY' if filtered == 2 else 'SELL')} در قیمت {price} اجرا شد")
             else:
                 print("🔁 سیگنال جدیدی وجود ندارد یا تکراری است")

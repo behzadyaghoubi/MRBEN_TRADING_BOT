@@ -1,1 +1,3 @@
-# MR BEN Core Trading System
+"""
+Core package for MR BEN Trading System.
+"""
