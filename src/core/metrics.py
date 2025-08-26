@@ -13,7 +13,7 @@ import psutil
 class PerformanceMetrics:
     """Performance monitoring and metrics collection."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.start_time = time.time()
         self.cycle_count = 0
         self.trade_count = 0
@@ -64,6 +64,16 @@ class PerformanceMetrics:
         self.error_count = 0
         self.memory_usage.clear()
         self.response_times.clear()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert metrics to dictionary format for tests."""
+        return {
+            "uptime_seconds": time.time() - self.start_time,
+            "cycle_count": self.cycle_count,
+            "total_trades": self.trade_count,
+            "error_count": self.error_count,
+            "error_rate": self.error_count / max(self.cycle_count, 1),
+        }
 
     def log_summary(self, logger: logging.Logger) -> None:
         """Log current performance summary."""
