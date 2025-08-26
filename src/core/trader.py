@@ -22,26 +22,33 @@ except ImportError:
     MT5_AVAILABLE = False
 
 # Import local modules
+import sys
+import os
+# Add current directory to Python path for imports
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
 try:
     # Try absolute imports from src root
-    from ai.system import MRBENAdvancedAISystem
-    from core.exceptions import TradingSystemError
-    from core.metrics import PerformanceMetrics
-    from data.manager import MT5DataManager
-    from execution.executor import EnhancedTradeExecutor
-    from indicators.atr import compute_atr
-    from risk.manager import EnhancedRiskManager
-    from risk_manager.atr_sl_tp import calc_sltp_from_atr
-    from signals.multi_tf_rsi_macd import analyze_multi_tf_rsi_macd
+    from src.ai.system import MRBENAdvancedAISystem
+    from src.core.exceptions import TradingSystemError
+    from src.core.metrics import PerformanceMetrics
+    from src.data.manager import MT5DataManager
+    from src.execution.executor import EnhancedTradeExecutor
+    from src.indicators.atr import compute_atr
+    from src.risk.manager import EnhancedRiskManager
+    from src.risk_manager.atr_sl_tp import calc_sltp_from_atr
+    from src.signals.multi_tf_rsi_macd import analyze_multi_tf_rsi_macd
     from src.config.settings import MT5Config
-    from utils.helpers import (
+    from src.utils.helpers import (
         _apply_soft_gate,
         _rolling_atr,
         _swing_extrema,
         enforce_min_distance_and_round,
     )
-    from utils.memory import cleanup_memory, log_memory_usage
-    from utils.position_management import (
+    from src.utils.memory import cleanup_memory, log_memory_usage
+    from src.utils.position_management import (
         _count_open_positions,
         _get_open_positions,
         _prune_trailing_registry,
@@ -183,7 +190,7 @@ class MT5LiveTrader:
             # Conformal Gate (optional)
             self.conformal = None
             try:
-                from utils.conformal import ConformalGate
+                from src.utils.conformal import ConformalGate
 
                 self.conformal = ConformalGate("models/meta_filter.joblib", "models/conformal.json")
                 self.logger.info("✅ Conformal gate loaded.")
@@ -232,7 +239,7 @@ class MT5LiveTrader:
 
         # Chandelier trailing engine (optional)
         try:
-            from utils.trailing import ChandelierTrailing, TrailParams
+            from src.utils.trailing import ChandelierTrailing, TrailParams
 
             self.trailing_engine = ChandelierTrailing(TrailParams(k_atr=1.5, min_step=0.2))
         except ImportError:
@@ -618,7 +625,7 @@ class MT5LiveTrader:
                     self.last_memory_check = time.time()
 
                     # Force cleanup if needed
-                    from utils.memory import force_cleanup_if_needed
+                    from src.utils.memory import force_cleanup_if_needed
 
                     if force_cleanup_if_needed(threshold_mb=1000.0, logger=self.logger):
                         self.logger.info("🧹 Memory cleanup performed")
@@ -810,7 +817,7 @@ class MT5LiveTrader:
     def _check_spread(self) -> tuple[bool, float, float]:
         """Check if current spread is acceptable."""
         try:
-            from utils.helpers import is_spread_ok
+            from src.utils.helpers import is_spread_ok
 
             return is_spread_ok(self.config.SYMBOL, self.max_spread_points)
         except Exception as e:
