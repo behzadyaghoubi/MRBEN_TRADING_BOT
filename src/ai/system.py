@@ -119,6 +119,7 @@ class MRBENAdvancedAISystem:
         exp2 = df['close'].ewm(span=26, adjust=False).mean()
         df['macd'] = exp1 - exp2
         df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+        df['macd_hist'] = df['macd'] - df['macd_signal']
 
         # Moving averages
         df['sma_20'] = df['close'].rolling(20).mean()

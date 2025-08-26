@@ -2692,3 +2692,4 @@
 {"timestamp": "2025-08-21T21:40:02.069579", "event_type": "logger_started", "run_id": "20250821-214002", "symbol": "XAUUSD.PRO"}
 {"timestamp": "2025-08-21T21:43:49.516012", "event_type": "logger_started", "run_id": "20250821-214349", "symbol": "XAUUSD.PRO"}
 {"timestamp": "2025-08-21T21:45:37.820951", "event_type": "trade_attempt", "run_id": "20250821-214349", "symbol": "XAUUSD.PRO", "side": "SELL", "entry": 3329.0, "sl": 3331.63, "tp": 3324.96, "volume": 1.9000000000000001, "confidence": 0.7, "source": "SMA_Only_-1"}
+{"ts": "2025-08-26T23:07:26Z", "event": "bot_start", "run_id": "20250826-160725", "symbol": "XAUUSD.PRO", "account_login": null, "balance": null, "equity": null, "config": {"tf": 15, "max_open": 3}}

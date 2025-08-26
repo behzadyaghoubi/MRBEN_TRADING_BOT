@@ -230,7 +230,7 @@ class EnhancedRiskManager:
             return False
         if start_balance > 0:
             dd = (start_balance - current_balance) / start_balance
-            if dd > self.max_drawdown:
+            if dd >= self.max_drawdown:
                 return False
         return True
 
