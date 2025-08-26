@@ -29,6 +29,16 @@
     "fallback_sl_pct": 0.005,
     "fallback_tp_pct": 0.0075
   },
+  "multi_tf": {
+    "timeframes": ["M5", "M15", "H1"],
+    "rsi_period": 14,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "rsi_overbought": 70,
+    "rsi_oversold": 30,
+    "min_agreement": 2
+  },
   "session": {
     "timezone": "Etc/UTC",
     "windows": {

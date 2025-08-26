@@ -33,6 +33,7 @@ try:
     from indicators.atr import compute_atr
     from risk.manager import EnhancedRiskManager
     from risk_manager.atr_sl_tp import calc_sltp_from_atr
+    from signals.multi_tf_rsi_macd import analyze_multi_tf_rsi_macd
     from utils.helpers import (
         _apply_soft_gate,
         _rolling_atr,
@@ -281,6 +282,17 @@ class MT5LiveTrader:
         self.tp_k = float(rconf.get("tp_k", 1.5))
         self.fallback_sl_pct = float(rconf.get("fallback_sl_pct", 0.005))
         self.fallback_tp_pct = float(rconf.get("fallback_tp_pct", 0.0075))
+
+        # Multi-timeframe RSI/MACD parameters
+        mtf_conf = self.config.config_data.get("multi_tf", {})
+        self.mtf_timeframes = list(mtf_conf.get("timeframes", ["M5", "M15", "H1"]))
+        self.mtf_rsi_period = int(mtf_conf.get("rsi_period", 14))
+        self.mtf_macd_fast = int(mtf_conf.get("macd_fast", 12))
+        self.mtf_macd_slow = int(mtf_conf.get("macd_slow", 26))
+        self.mtf_macd_signal = int(mtf_conf.get("macd_signal", 9))
+        self.mtf_rsi_overbought = int(mtf_conf.get("rsi_overbought", 70))
+        self.mtf_rsi_oversold = int(mtf_conf.get("rsi_oversold", 30))
+        self.mtf_min_agreement = int(mtf_conf.get("min_agreement", 2))
 
         self.conf_min = float(self.risk_manager.base_confidence_threshold)
         self.conf_max = 0.90
@@ -932,6 +944,15 @@ class MT5LiveTrader:
             if signal == 0:
                 return False
 
+            # Multi-timeframe RSI/MACD consensus check
+            mtf_consensus = self._check_multi_tf_consensus()
+            if mtf_consensus == "neutral":
+                self.logger.info("Multi-timeframe consensus: NEUTRAL - skipping trade")
+                return False
+            elif mtf_consensus != ("buy" if signal > 0 else "sell"):
+                self.logger.info(f"Multi-timeframe consensus: {mtf_consensus} - signal mismatch, skipping trade")
+                return False
+
             # Get current market data
             tick = self.data_manager.get_current_tick()
             if not tick:
@@ -1064,6 +1085,78 @@ class MT5LiveTrader:
         except Exception as e:
             self.logger.error(f"Error executing trade: {e}")
             return False
+
+    def _check_multi_tf_consensus(self) -> str:
+        """Check multi-timeframe RSI/MACD consensus."""
+        try:
+            # Collect data for all timeframes
+            timeframe_data = {}
+            
+            for tf in self.mtf_timeframes:
+                try:
+                    # Convert timeframe string to minutes for data fetching
+                    tf_minutes = self._convert_timeframe_to_minutes(tf)
+                    if tf_minutes is None:
+                        self.logger.warning(f"Unknown timeframe: {tf}, skipping")
+                        continue
+                    
+                    # Fetch data for this timeframe
+                    df = self.data_manager.get_latest_data(100, tf_minutes)  # Get 100 bars
+                    if df is not None and len(df) >= 50:  # Ensure sufficient data
+                        timeframe_data[tf] = df
+                    else:
+                        self.logger.warning(f"Insufficient data for timeframe {tf}, skipping")
+                except Exception as e:
+                    self.logger.warning(f"Error fetching data for timeframe {tf}: {e}")
+                    continue
+            
+            if len(timeframe_data) < 2:
+                self.logger.warning("Insufficient timeframe data for consensus check")
+                return "neutral"
+            
+            # Analyze RSI/MACD for each timeframe
+            signals = analyze_multi_tf_rsi_macd(
+                timeframe_data,
+                rsi_period=self.mtf_rsi_period,
+                macd_fast=self.mtf_macd_fast,
+                macd_slow=self.mtf_macd_slow,
+                macd_signal=self.mtf_macd_signal,
+                rsi_overbought=self.mtf_rsi_overbought,
+                rsi_oversold=self.mtf_rsi_oversold,
+            )
+            
+            # Count buy/sell signals
+            buy_count = sum(1 for signal in signals.values() if signal == "buy")
+            sell_count = sum(1 for signal in signals.values() if signal == "sell")
+            
+            # Log per-timeframe signals
+            tf_signals = ", ".join([f"{tf}={signal}" for tf, signal in signals.items()])
+            self.logger.info(f"Multi-timeframe signals: {tf_signals}")
+            
+            # Determine consensus
+            if buy_count >= self.mtf_min_agreement:
+                consensus = "buy"
+            elif sell_count >= self.mtf_min_agreement:
+                consensus = "sell"
+            else:
+                consensus = "neutral"
+            
+            # Log final consensus
+            self.logger.info(f"Multi-timeframe consensus: {consensus} (buy={buy_count}, sell={sell_count}, min_agreement={self.mtf_min_agreement})")
+            
+            return consensus
+            
+        except Exception as e:
+            self.logger.error(f"Error in multi-timeframe consensus check: {e}")
+            return "neutral"
+    
+    def _convert_timeframe_to_minutes(self, timeframe: str) -> int | None:
+        """Convert timeframe string to minutes."""
+        tf_map = {
+            "M1": 1, "M5": 5, "M15": 15, "M30": 30,
+            "H1": 60, "H4": 240, "D1": 1440
+        }
+        return tf_map.get(timeframe)
 
     def _update_trailing_stops(self) -> None:
         """Update trailing stops for all positions."""
