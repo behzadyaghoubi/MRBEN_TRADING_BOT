@@ -2,6 +2,17 @@
 line-length = 100
 target-version = ["py311"]
 skip-string-normalization = true
+extend-exclude = '''
+(
+  ^backtests/train_ai_model\.py$
+  | ^live_trader_clean_alternative\.py$
+  | ^retrain_lstm_balanced\.py$
+  | ^live_runner\.py$
+  | ^live_trader_clean_final\.py$
+  | ^live_trader_clean_fixed\.py$
+  | ^live_trader_clean_fixed_syntax\.py$
+)
+'''
 
 [tool.isort]
 profile = "black"
