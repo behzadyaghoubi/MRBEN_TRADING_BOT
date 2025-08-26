@@ -50,5 +50,5 @@ Environment details captured in `docs/ops/00_env.txt`
 5. Implement AutoML retraining pipeline
 
 ---
-**Generated**: 2025-08-20  
+**Generated**: 2025-08-20
 **Status**: ✅ PREFLIGHT COMPLETE

@@ -1,9 +1,9 @@
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
 df = pd.read_csv('ai_trading_results.csv')
 
-df['equity'].plot(title='Equity Curve', figsize=(12,6))
+df['equity'].plot(title='Equity Curve', figsize=(12, 6))
 plt.ylabel('Equity ($)')
 plt.grid(True)
 plt.savefig('equity_curve.png')

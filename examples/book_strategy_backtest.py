@@ -3,28 +3,29 @@
 Backtest BookStrategy on 1 month of XAUUSD M15 data.
 Generates signals, simulates trades, and reports performance metrics.
 """
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-import sys
-from pathlib import Path
-import matplotlib.pyplot as plt
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from src.strategies.book_strategy import BookStrategy
-from src.config.settings import settings
+
 
 # 1. Generate 1 month of realistic XAUUSD M15 OHLCV data
 def generate_xauusd_m15_data(days=31):
     np.random.seed(42)
     periods = days * 24 * 4  # 4 bars per hour
     base_price = 2000.0
-    timestamps = [datetime.now() - timedelta(minutes=15*(periods-i)) for i in range(periods)]
+    timestamps = [datetime.now() - timedelta(minutes=15 * (periods - i)) for i in range(periods)]
     prices = [base_price]
     for _ in range(1, periods):
         change = np.random.normal(0, 0.25)  # ~0.25% stddev per bar
-        prices.append(prices[-1] * (1 + change/100))
+        prices.append(prices[-1] * (1 + change / 100))
     data = []
     for i, price in enumerate(prices):
         high = price * (1 + abs(np.random.normal(0, 0.0015)))
@@ -34,17 +35,20 @@ def generate_xauusd_m15_data(days=31):
         volume = np.random.randint(5000, 20000)
         high = max(high, open_, close)
         low = min(low, open_, close)
-        data.append({
-            'timestamp': timestamps[i],
-            'open': open_,
-            'high': high,
-            'low': low,
-            'close': close,
-            'tick_volume': volume
-        })
+        data.append(
+            {
+                'timestamp': timestamps[i],
+                'open': open_,
+                'high': high,
+                'low': low,
+                'close': close,
+                'tick_volume': volume,
+            }
+        )
     df = pd.DataFrame(data)
     df = df.sort_values('timestamp').reset_index(drop=True)
     return df
+
 
 # 2. Run BookStrategy to generate signals
 def run_backtest(df, strategy):
@@ -55,7 +59,7 @@ def run_backtest(df, strategy):
     max_equity = balance
     drawdowns = []
     for i in range(50, len(df)):
-        window = df.iloc[:i+1]
+        window = df.iloc[: i + 1]
         signal = strategy.generate_signal(window)
         bar = df.iloc[i]
         # Close trade if open
@@ -82,23 +86,29 @@ def run_backtest(df, strategy):
                     equity_curve.append(balance)
                     continue
             # Close trade
-            pl = (exit_price - open_trade['entry']) if open_trade['side']=='BUY' else (open_trade['entry'] - exit_price)
+            pl = (
+                (exit_price - open_trade['entry'])
+                if open_trade['side'] == 'BUY'
+                else (open_trade['entry'] - exit_price)
+            )
             pl = pl * 10  # 1 lot, $10 per XAUUSD pip (0.1)
             balance += pl
-            trades.append({
-                'entry_time': open_trade['entry_time'],
-                'exit_time': bar['timestamp'],
-                'side': open_trade['side'],
-                'entry': open_trade['entry'],
-                'exit': exit_price,
-                'stop_loss': open_trade['stop_loss'],
-                'take_profit': open_trade['take_profit'],
-                'result': result,
-                'pl': pl,
-                'risk_reward': open_trade['risk_reward'],
-                'confidence': open_trade['confidence'],
-                'reasons': open_trade['reasons']
-            })
+            trades.append(
+                {
+                    'entry_time': open_trade['entry_time'],
+                    'exit_time': bar['timestamp'],
+                    'side': open_trade['side'],
+                    'entry': open_trade['entry'],
+                    'exit': exit_price,
+                    'stop_loss': open_trade['stop_loss'],
+                    'take_profit': open_trade['take_profit'],
+                    'result': result,
+                    'pl': pl,
+                    'risk_reward': open_trade['risk_reward'],
+                    'confidence': open_trade['confidence'],
+                    'reasons': open_trade['reasons'],
+                }
+            )
             open_trade = None
             equity_curve.append(balance)
             max_equity = max(max_equity, balance)
@@ -113,33 +123,39 @@ def run_backtest(df, strategy):
                 'entry_time': bar['timestamp'],
                 'risk_reward': signal['risk_reward_ratio'],
                 'confidence': signal['confidence'],
-                'reasons': signal['reasons']
+                'reasons': signal['reasons'],
             }
         equity_curve.append(balance)
         max_equity = max(max_equity, balance)
         drawdowns.append(max_equity - balance)
     return trades, equity_curve, drawdowns
 
+
 def summarize_results(trades, equity_curve, drawdowns):
     total_trades = len(trades)
-    wins = [t for t in trades if t['result']=='TP']
-    losses = [t for t in trades if t['result']=='SL']
+    wins = [t for t in trades if t['result'] == 'TP']
+    losses = [t for t in trades if t['result'] == 'SL']
     win_rate = 100 * len(wins) / total_trades if total_trades else 0
     avg_rr = np.mean([t['risk_reward'] for t in trades]) if trades else 0
     total_pl = sum(t['pl'] for t in trades)
     max_dd = max(drawdowns) if drawdowns else 0
     final_balance = equity_curve[-1] if equity_curve else 0
-    return {
-        'Total Trades': total_trades,
-        'Win Rate (%)': win_rate,
-        'Average R/R': avg_rr,
-        'Total Profit/Loss': total_pl,
-        'Final Balance': final_balance,
-        'Max Drawdown': max_dd
-    }, wins, losses
+    return (
+        {
+            'Total Trades': total_trades,
+            'Win Rate (%)': win_rate,
+            'Average R/R': avg_rr,
+            'Total Profit/Loss': total_pl,
+            'Final Balance': final_balance,
+            'Max Drawdown': max_dd,
+        },
+        wins,
+        losses,
+    )
+
 
 def plot_equity_curve(equity_curve):
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(equity_curve, label='Equity Curve')
     plt.title('BookStrategy Backtest Equity Curve')
     plt.xlabel('Trade/Bar')
@@ -148,6 +164,7 @@ def plot_equity_curve(equity_curve):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+
 
 def print_summary_table(summary, wins, losses):
     print("\nBacktest Summary:")
@@ -167,6 +184,7 @@ def print_summary_table(summary, wins, losses):
         print("Sample Losing Trade:")
         print(losses[0])
 
+
 if __name__ == "__main__":
     print("Generating XAUUSD M15 data...")
     df = generate_xauusd_m15_data(days=31)
@@ -177,4 +195,4 @@ if __name__ == "__main__":
     trades, equity_curve, drawdowns = run_backtest(df, strategy)
     summary, wins, losses = summarize_results(trades, equity_curve, drawdowns)
     print_summary_table(summary, wins, losses)
-    plot_equity_curve(equity_curve) 
+    plot_equity_curve(equity_curve)

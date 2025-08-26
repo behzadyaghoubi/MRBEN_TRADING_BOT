@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+
 def load_dqn_model(model_path='trained_dqn_model.h5'):
     return tf.keras.models.load_model(model_path)
+
 
 def predict_action(model, df, window_size=10):
     # آماده‌سازی state
@@ -12,6 +14,7 @@ def predict_action(model, df, window_size=10):
     q_values = model.predict(state, verbose=0)
     action = np.argmax(q_values[0])  # 0: BUY, 1: SELL, 2: HOLD
     return action
+
 
 if __name__ == "__main__":
     df = pd.read_csv('ohlc_data.csv')

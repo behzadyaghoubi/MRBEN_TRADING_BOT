@@ -13,4 +13,3 @@
 \- Raise specific exceptions; avoid bare `except`.
 
 \- I/O boundaries clear; no prints in library code (use logger).
-

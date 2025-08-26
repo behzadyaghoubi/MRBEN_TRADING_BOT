@@ -1,6 +1,7 @@
-import os
 import logging
-from typing import Any, Optional, Union, Dict
+import os
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -32,6 +33,7 @@ if not logger.handlers:
     ch.setFormatter(logging.Formatter('[%(asctime)s][%(levelname)s] %(message)s'))
     logger.addHandler(ch)
 
+
 class AISignalFilter:
     """
     Professional AI signal filter with feature shape check and robust error reporting.
@@ -46,7 +48,9 @@ class AISignalFilter:
         self.feature_names = []
         self.feature_count = None
         self._extract_feature_names()
-        logger.info(f"AI Filter Initialized | Model: {self.model_type} | Threshold: {self.threshold}")
+        logger.info(
+            f"AI Filter Initialized | Model: {self.model_type} | Threshold: {self.threshold}"
+        )
 
     def _load_model(self) -> Any:
         logger.info(f"Loading model: {self.model_path} (type={self.model_type})")
@@ -88,7 +92,7 @@ class AISignalFilter:
         except Exception as e:
             logger.warning(f"Feature names extraction failed: {e}")
 
-    def _prepare_features(self, X: Union[dict, list, np.ndarray, pd.DataFrame]) -> np.ndarray:
+    def _prepare_features(self, X: dict | list | np.ndarray | pd.DataFrame) -> np.ndarray:
         """
         Converts X into correct shape for model input.
         Handles: dict, list, 1d/2d numpy, DataFrame.
@@ -116,10 +120,14 @@ class AISignalFilter:
             logger.error(
                 f"Feature shape mismatch, expected: {self.feature_count} ({self.feature_names if self.feature_names else ''}), got: {arr.shape[1]}"
             )
-            raise ValueError(f"Feature shape mismatch, expected: {self.feature_count}, got: {arr.shape[1]}")
+            raise ValueError(
+                f"Feature shape mismatch, expected: {self.feature_count}, got: {arr.shape[1]}"
+            )
         return arr
 
-    def predict(self, X: Union[pd.DataFrame, np.ndarray, list, dict], return_confidence: bool = False) -> Union[int, float]:
+    def predict(
+        self, X: pd.DataFrame | np.ndarray | list | dict, return_confidence: bool = False
+    ) -> int | float:
         """
         Predict signal (0/1) or probability with the AI model.
         If return_confidence=True, returns probability/confidence (float)
@@ -157,7 +165,7 @@ class AISignalFilter:
             logger.error(f"Prediction error: {e}")
             return 0 if not return_confidence else 0.0
 
-    def filter_signal(self, features: Union[pd.DataFrame, np.ndarray, list, dict]) -> int:
+    def filter_signal(self, features: pd.DataFrame | np.ndarray | list | dict) -> int:
         """
         Passes signal through AI filter.
         Returns: 1 if signal passes, otherwise 0.
@@ -170,7 +178,9 @@ class AISignalFilter:
             logger.error(f"Signal filter failed: {e}")
             return 0
 
-    def filter_signal_with_confidence(self, features: Union[pd.DataFrame, np.ndarray, list, dict]) -> Dict[str, Union[int, float]]:
+    def filter_signal_with_confidence(
+        self, features: pd.DataFrame | np.ndarray | list | dict
+    ) -> dict[str, int | float]:
         """
         Passes signal through AI filter and returns both prediction and confidence.
         Returns: {"prediction": int, "confidence": float}
@@ -178,11 +188,8 @@ class AISignalFilter:
         try:
             prediction = self.filter_signal(features)
             confidence = self.get_confidence(features)
-            
-            return {
-                "prediction": prediction,
-                "confidence": confidence
-            }
+
+            return {"prediction": prediction, "confidence": confidence}
         except Exception as e:
             logger.error(f"Signal filter with confidence failed: {e}")
             return {"prediction": 0, "confidence": 0.0}
@@ -195,7 +202,7 @@ class AISignalFilter:
             logger.error(f"Confidence fetch failed: {e}")
             return 0.0
 
-    def reload_model(self, new_path: Optional[str] = None, new_type: Optional[str] = None):
+    def reload_model(self, new_path: str | None = None, new_type: str | None = None):
         """Reloads model from file (optionally with new path/type)."""
         if new_path:
             self.model_path = new_path
@@ -209,16 +216,19 @@ class AISignalFilter:
         self.threshold = float(new_threshold)
         logger.info(f"Threshold updated to {self.threshold}")
 
-    def get_feature_importance(self) -> Dict[str, float]:
+    def get_feature_importance(self) -> dict[str, float]:
         """Returns feature importances if available."""
         try:
             if hasattr(self.model, "feature_importances_") and self.feature_names:
-                return dict(zip(self.feature_names, self.model.feature_importances_))
+                return dict(zip(self.feature_names, self.model.feature_importances_, strict=False))
             elif hasattr(self.model, "feature_importances_"):
-                return {f"feature_{i}": imp for i, imp in enumerate(self.model.feature_importances_)}
+                return {
+                    f"feature_{i}": imp for i, imp in enumerate(self.model.feature_importances_)
+                }
         except Exception as e:
             logger.warning(f"Cannot extract feature importance: {e}")
         return {}
+
 
 # Example Usage
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import pandas as pd
 import xgboost as xgb
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 df = pd.read_csv('lstm_signals_pro.csv')
 # ستون‌های features را با توجه به داده‌های مدل خودت تنظیم کن
@@ -17,4 +17,5 @@ y_pred = model.predict(X_test)
 print(f"دقت مدل فیلتر سیگنال: {accuracy_score(y_test, y_pred):.4f}")
 
 import joblib
+
 joblib.dump(model, 'ml_signal_filter_xgb.joblib')

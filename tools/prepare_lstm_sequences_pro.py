@@ -1,17 +1,25 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 df = pd.read_csv("lstm_train_data_pro.csv")
 
 window_size = 50
 
-features = ['close', 'open', 'high', 'low', 'tick_volume', 'real_volume', 'spread']  # اگر volume یا spread نداری حذفش کن
+features = [
+    'close',
+    'open',
+    'high',
+    'low',
+    'tick_volume',
+    'real_volume',
+    'spread',
+]  # اگر volume یا spread نداری حذفش کن
 X = []
 y = []
 
 for i in range(len(df) - window_size):
-    feat_seq = df[features].iloc[i:i+window_size].values
-    label = df['target'].iloc[i+window_size-1]
+    feat_seq = df[features].iloc[i : i + window_size].values
+    label = df['target'].iloc[i + window_size - 1]
     # فقط حرکات 1 یا -1 (ترید) یا اگر خواستی هر سه رو نگه دار
     X.append(feat_seq)
     y.append(label)

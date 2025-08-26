@@ -134,6 +134,6 @@ risk_management:
 
 ---
 
-**Status**: STEP5 COMPLETED ✅  
-**Date**: Current  
+**Status**: STEP5 COMPLETED ✅
+**Date**: Current
 **Next**: STEP6 - Position Management

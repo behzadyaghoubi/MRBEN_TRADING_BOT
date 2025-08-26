@@ -1,1 +1,1 @@
-# Core module for MR BEN Pro Strategy 
+# Core module for MR BEN Pro Strategy

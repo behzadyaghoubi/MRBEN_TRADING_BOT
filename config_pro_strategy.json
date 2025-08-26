@@ -5,7 +5,7 @@
   "AGENT_MODE": "guard",
   "ENABLE_REGIME": true,
   "ENABLE_CONFORMAL": true,
-  
+
   "strategy": {
     "min_conf": 0.55,
     "atr_conf_scale": [0.5, 0.9],
@@ -21,7 +21,7 @@
     "use_lstm": true,
     "weights": {"rule": 0.3, "ml": 0.35, "lstm": 0.35}
   },
-  
+
   "session": {
     "timezone": "Etc/UTC",
     "windows": {
@@ -30,13 +30,13 @@
     },
     "block_outside": true
   },
-  
+
   "portfolio": {
     "symbols": ["XAUUSD.PRO", "EURUSD.PRO", "NAS100.PRO"],
     "max_open_trades_total": 4,
     "max_risk_per_symbol": 0.01
   },
-  
+
   "risk": {
     "max_daily_loss": 0.02,
     "max_open_trades": 2,
@@ -44,7 +44,7 @@
     "stop_loss_atr_mult": 3.0,
     "take_profit_atr_mult": 5.0
   },
-  
+
   "agent": {
     "mode": "guard",
     "enable_supervision": true,

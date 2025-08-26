@@ -1,10 +1,9 @@
 import logging
-import numpy as np
+
 import MetaTrader5 as mt5
+import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+
 
 class EnhancedRiskManager:
     """
@@ -14,7 +13,7 @@ class EnhancedRiskManager:
     - Adaptive confidence thresholds
     - Position monitoring and management
     """
-    
+
     def __init__(
         self,
         base_risk=0.02,
@@ -29,7 +28,7 @@ class EnhancedRiskManager:
         base_confidence_threshold=0.5,
         adaptive_confidence=True,
         performance_window=20,
-        confidence_adjustment_factor=0.1
+        confidence_adjustment_factor=0.1,
     ):
         self.base_risk = base_risk
         self.min_lot = min_lot
@@ -44,44 +43,48 @@ class EnhancedRiskManager:
         self.adaptive_confidence = adaptive_confidence
         self.performance_window = performance_window
         self.confidence_adjustment_factor = confidence_adjustment_factor
-        
+
         # Performance tracking for adaptive thresholds
         self.recent_performances = []
         self.current_confidence_threshold = base_confidence_threshold
-        
+
         # Trailing stop tracking
-        self.trailing_stops = {}  # {ticket: {'entry_price': float, 'current_sl': float, 'is_buy': bool}}
-        
+        self.trailing_stops = (
+            {}
+        )  # {ticket: {'entry_price': float, 'current_sl': float, 'is_buy': bool}}
+
         self.logger = logging.getLogger("EnhancedRiskManager")
         self.logger.setLevel(logging.INFO)
-        
+
         if not self.logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
-    def get_atr(self, symbol: str, timeframe=mt5.TIMEFRAME_M5, bars=100) -> Optional[float]:
+    def get_atr(self, symbol: str, timeframe=mt5.TIMEFRAME_M5, bars=100) -> float | None:
         """Calculate ATR for dynamic TP/SL"""
         rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
         if rates is None or len(rates) < self.atr_period:
             self.logger.error(f"ATR data not available for {symbol}")
             return None
-            
+
         df = pd.DataFrame(rates)
         df['H-L'] = df['high'] - df['low']
         df['H-PC'] = abs(df['high'] - df['close'].shift())
         df['L-PC'] = abs(df['low'] - df['close'].shift())
         df['TR'] = df[['H-L', 'H-PC', 'L-PC']].max(axis=1)
         df['ATR'] = df['TR'].rolling(window=self.atr_period).mean()
-        
+
         atr = df['ATR'].iloc[-1]
         if pd.isna(atr):
             return None
-            
+
         return atr
 
-    def calculate_dynamic_sl_tp(self, symbol: str, entry_price: float, signal: str) -> Tuple[float, float]:
+    def calculate_dynamic_sl_tp(
+        self, symbol: str, entry_price: float, signal: str
+    ) -> tuple[float, float]:
         """Calculate dynamic Stop Loss and Take Profit based on ATR"""
         atr = self.get_atr(symbol)
         if atr is None:
@@ -94,34 +97,37 @@ class EnhancedRiskManager:
             # ATR-based calculation
             sl_distance = atr * self.sl_atr_multiplier
             tp_distance = atr * self.tp_atr_multiplier
-            
+
         if signal == "BUY":
             sl = entry_price - sl_distance
             tp = entry_price + tp_distance
         else:  # SELL
             sl = entry_price + sl_distance
             tp = entry_price - tp_distance
-            
+
         self.logger.info(f"Dynamic SL/TP for {symbol}: SL={sl:.5f}, TP={tp:.5f} (ATR={atr:.5f})")
         return round(sl, 5), round(tp, 5)
 
-    def calculate_position_size(self, symbol: str, balance: float, entry_price: float, 
-                              stop_loss: float, pip_value: float) -> float:
+    def calculate_position_size(
+        self, symbol: str, balance: float, entry_price: float, stop_loss: float, pip_value: float
+    ) -> float:
         """Calculate position size based on risk management rules"""
         # Calculate stop loss distance in pips
         point = mt5.symbol_info(symbol).point
         sl_distance_pips = abs(entry_price - stop_loss) / point
-        
+
         # Calculate risk amount
         risk_amount = balance * self.base_risk
-        
+
         # Calculate lot size
         lot_size = risk_amount / (sl_distance_pips * pip_value)
-        
+
         # Apply constraints
         lot_size = np.clip(lot_size, self.min_lot, self.max_lot)
-        
-        self.logger.info(f"Position size for {symbol}: {lot_size:.2f} lots (risk: {self.base_risk:.1%})")
+
+        self.logger.info(
+            f"Position size for {symbol}: {lot_size:.2f} lots (risk: {self.base_risk:.1%})"
+        )
         return round(lot_size, 2)
 
     def add_trailing_stop(self, ticket: int, entry_price: float, stop_loss: float, is_buy: bool):
@@ -131,49 +137,45 @@ class EnhancedRiskManager:
             'current_sl': stop_loss,
             'is_buy': is_buy,
             'highest_price': entry_price if is_buy else float('-inf'),
-            'lowest_price': entry_price if not is_buy else float('inf')
+            'lowest_price': entry_price if not is_buy else float('inf'),
         }
         self.logger.info(f"Added trailing stop for ticket {ticket}")
 
-    def update_trailing_stops(self, symbol: str) -> List[Dict]:
+    def update_trailing_stops(self, symbol: str) -> list[dict]:
         """Update all trailing stops and return modifications needed"""
         if not self.trailing_stops:
             return []
-            
+
         atr = self.get_atr(symbol)
         if atr is None:
             return []
-            
+
         current_price = mt5.symbol_info_tick(symbol).bid  # Use bid for trailing calculations
         modifications = []
-        
+
         for ticket, stop_data in self.trailing_stops.items():
             # Update highest/lowest prices
             if stop_data['is_buy']:
                 stop_data['highest_price'] = max(stop_data['highest_price'], current_price)
                 new_sl = stop_data['highest_price'] - (atr * self.trailing_atr_multiplier)
-                
+
                 # Only move SL up for buy positions
                 if new_sl > stop_data['current_sl']:
                     stop_data['current_sl'] = new_sl
-                    modifications.append({
-                        'ticket': ticket,
-                        'new_sl': new_sl,
-                        'reason': 'Trailing stop updated'
-                    })
+                    modifications.append(
+                        {'ticket': ticket, 'new_sl': new_sl, 'reason': 'Trailing stop updated'}
+                    )
             else:
                 stop_data['lowest_price'] = min(stop_data['lowest_price'], current_price)
                 new_sl = stop_data['lowest_price'] + (atr * self.trailing_atr_multiplier)
-                
+
                 # Only move SL down for sell positions
                 if new_sl < stop_data['current_sl']:
                     stop_data['current_sl'] = new_sl
-                    modifications.append({
-                        'ticket': ticket,
-                        'new_sl': new_sl,
-                        'reason': 'Trailing stop updated'
-                    })
-        
+                    modifications.append(
+                        {'ticket': ticket, 'new_sl': new_sl, 'reason': 'Trailing stop updated'}
+                    )
+
         return modifications
 
     def remove_trailing_stop(self, ticket: int):
@@ -185,28 +187,32 @@ class EnhancedRiskManager:
     def update_performance(self, trade_result: float):
         """Update performance tracking for adaptive confidence thresholds"""
         self.recent_performances.append(trade_result)
-        
+
         # Keep only recent performances
         if len(self.recent_performances) > self.performance_window:
             self.recent_performances.pop(0)
-            
+
         # Update confidence threshold if adaptive mode is enabled
         if self.adaptive_confidence and len(self.recent_performances) >= 5:
-            recent_win_rate = sum(1 for p in self.recent_performances if p > 0) / len(self.recent_performances)
-            
+            recent_win_rate = sum(1 for p in self.recent_performances if p > 0) / len(
+                self.recent_performances
+            )
+
             if recent_win_rate > 0.6:  # Good performance
                 self.current_confidence_threshold = max(
                     self.base_confidence_threshold * 0.8,
-                    self.current_confidence_threshold - self.confidence_adjustment_factor
+                    self.current_confidence_threshold - self.confidence_adjustment_factor,
                 )
             elif recent_win_rate < 0.4:  # Poor performance
                 self.current_confidence_threshold = min(
                     self.base_confidence_threshold * 1.2,
-                    self.current_confidence_threshold + self.confidence_adjustment_factor
+                    self.current_confidence_threshold + self.confidence_adjustment_factor,
                 )
-                
-            self.logger.info(f"Adaptive confidence threshold: {self.current_confidence_threshold:.3f} "
-                           f"(win rate: {recent_win_rate:.2f})")
+
+            self.logger.info(
+                f"Adaptive confidence threshold: {self.current_confidence_threshold:.3f} "
+                f"(win rate: {recent_win_rate:.2f})"
+            )
 
     def get_current_confidence_threshold(self) -> float:
         """Get current confidence threshold (adaptive or fixed)"""
@@ -221,20 +227,20 @@ class EnhancedRiskManager:
         if drawdown > self.max_drawdown:
             self.logger.warning(f"Max drawdown exceeded: {drawdown:.2%}")
             return False
-            
+
         # Check max open trades
         if open_trades >= self.max_open_trades:
             self.logger.warning(f"Max open trades reached: {open_trades}")
             return False
-            
+
         return True
 
-    def get_open_positions(self, symbol: str) -> List[Dict]:
+    def get_open_positions(self, symbol: str) -> list[dict]:
         """Get all open positions for a symbol"""
         positions = mt5.positions_get(symbol=symbol)
         if positions is None:
             return []
-            
+
         return [
             {
                 'ticket': pos.ticket,
@@ -244,14 +250,16 @@ class EnhancedRiskManager:
                 'price_current': pos.price_current,
                 'sl': pos.sl,
                 'tp': pos.tp,
-                'profit': pos.profit
+                'profit': pos.profit,
             }
             for pos in positions
         ]
 
     def log_status(self):
         """Log current risk manager status"""
-        self.logger.info(f"Risk Manager Status:")
+        self.logger.info("Risk Manager Status:")
         self.logger.info(f"  - Confidence threshold: {self.get_current_confidence_threshold():.3f}")
         self.logger.info(f"  - Trailing stops active: {len(self.trailing_stops)}")
-        self.logger.info(f"  - Recent performance: {self.recent_performances[-5:] if self.recent_performances else 'None'}") 
+        self.logger.info(
+            f"  - Recent performance: {self.recent_performances[-5:] if self.recent_performances else 'None'}"
+        )

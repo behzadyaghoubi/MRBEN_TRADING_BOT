@@ -14,7 +14,7 @@ print(f"BUY: {buy_count}")
 print(f"SELL: {sell_count}")
 print(f"HOLD: {hold_count}")
 
-print(f"\nPercentages:")
+print("\nPercentages:")
 print(f"BUY: {buy_count/total_count*100:.1f}%")
 print(f"SELL: {sell_count/total_count*100:.1f}%")
 print(f"HOLD: {hold_count/total_count*100:.1f}%")
@@ -22,8 +22,8 @@ print(f"HOLD: {hold_count/total_count*100:.1f}%")
 if buy_count > 0 and sell_count > 0:
     ratio = buy_count / sell_count
     print(f"\nBUY/SELL ratio: {ratio:.2f}")
-    
+
     if 0.8 <= ratio <= 1.2:
         print("✅ Balanced BUY/SELL distribution")
     else:
-        print("⚠️ Unbalanced BUY/SELL distribution") 
+        print("⚠️ Unbalanced BUY/SELL distribution")

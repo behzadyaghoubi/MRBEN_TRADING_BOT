@@ -54,10 +54,10 @@ try {
         Set-Location $using:PWD
         python mrben/main.py start --mode=paper --symbol XAUUSD.PRO --track=pro
     }
-    
+
     Write-Host "✅ Shadow A/B testing started in background" -ForegroundColor Green
     Write-Host "⏰ Wait 10-15 minutes for system to stabilize" -ForegroundColor Cyan
-    
+
 } catch {
     Write-Host "❌ Failed to start shadow testing: $($_.Exception.Message)" -ForegroundColor Red
 }

@@ -1,6 +1,6 @@
+import json
 import subprocess
 import time
-import json
 
 # زمان بین اجراها (مثلاً هر 12 ساعت)
 interval_hours = 12

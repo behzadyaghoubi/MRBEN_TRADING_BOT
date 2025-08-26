@@ -1,8 +1,8 @@
 from __future__ import annotations
-import sys
-import json
-from loguru import logger
 
+import sys
+
+from loguru import logger
 
 _DEF_FMT = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level:<7}</level> | {message} | {extra}"
 

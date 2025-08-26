@@ -1,10 +1,10 @@
 import gym
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
+from sklearn.preprocessing import StandardScaler
 from stable_baselines3 import DQN
 from stable_baselines3.common.vec_env import DummyVecEnv
-from sklearn.preprocessing import StandardScaler
 
 # ====================
 # 1. Load market data
@@ -22,6 +22,7 @@ scaler = StandardScaler()
 scaled_data = scaler.fit_transform(df)
 joblib.dump(scaler, "models/mrben_rl_scaler.save")
 
+
 # =====================
 # 3. ساخت محیط سفارشی
 # =====================
@@ -31,7 +32,9 @@ class TradingEnv(gym.Env):
         self.data = data
         self.index = 0
         self.action_space = gym.spaces.Discrete(3)  # 0: Hold, 1: Buy, 2: Sell
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(data.shape[1],), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(
+            low=-np.inf, high=np.inf, shape=(data.shape[1],), dtype=np.float32
+        )
         self.initial_balance = 10000
         self.balance = self.initial_balance
         self.position = 0  # 0: flat, 1: long, -1: short
@@ -63,6 +66,7 @@ class TradingEnv(gym.Env):
             done = True
 
         return self.data[self.index], reward, done, {}
+
 
 # =====================
 # 4. آموزش مدل RL

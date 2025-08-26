@@ -2,6 +2,6 @@
 Configuration management for MR BEN Trading System.
 """
 
-from .settings import MT5Config
+from .settings import AppSettings, settings  # re-export
 
-__all__ = ["MT5Config"] 
+__all__ = ["settings", "AppSettings"]

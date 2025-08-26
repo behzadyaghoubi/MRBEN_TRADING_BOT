@@ -1,20 +1,22 @@
 # fetch_mt5_history.py - FINAL PROFESSIONAL VERSION
 
-import MetaTrader5 as mt5
-import pandas as pd
-from datetime import datetime
 import argparse
 import json
 import os
 import time
 
+import MetaTrader5 as mt5
+import pandas as pd
+
+
 def load_settings(config_path="settings.json"):
     """Load MT5 credentials/settings from a JSON config file."""
     if os.path.exists(config_path):
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             return json.load(f)
     else:
         raise FileNotFoundError(f"{config_path} not found.")
+
 
 def fetch_mt5_data(login, password, server, symbol, timeframe, n_candles, out_csv=None, retries=3):
     """
@@ -46,11 +48,18 @@ def fetch_mt5_data(login, password, server, symbol, timeframe, n_candles, out_cs
         print(f"[OK] Data saved to {out_csv}. Candles: {len(df)}")
     return df
 
+
 # Timeframe mapping for flexibility
 TF_MAP = {
-    "M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
-    "M30": mt5.TIMEFRAME_M30, "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4,
-    "D1": mt5.TIMEFRAME_D1, "W1": mt5.TIMEFRAME_W1, "MN1": mt5.TIMEFRAME_MN1
+    "M1": mt5.TIMEFRAME_M1,
+    "M5": mt5.TIMEFRAME_M5,
+    "M15": mt5.TIMEFRAME_M15,
+    "M30": mt5.TIMEFRAME_M30,
+    "H1": mt5.TIMEFRAME_H1,
+    "H4": mt5.TIMEFRAME_H4,
+    "D1": mt5.TIMEFRAME_D1,
+    "W1": mt5.TIMEFRAME_W1,
+    "MN1": mt5.TIMEFRAME_MN1,
 }
 
 if __name__ == "__main__":

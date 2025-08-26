@@ -6,18 +6,19 @@ Choose between different trading systems based on your needs.
 """
 
 import os
-import sys
 import subprocess
-import time
+import sys
 from datetime import datetime
+
 
 def print_header():
     """Print script header."""
-    print("="*60)
+    print("=" * 60)
     print("🎯 MR BEN - TRADING SYSTEM SELECTOR")
-    print("="*60)
+    print("=" * 60)
     print(f"📅 Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
+
 
 def show_menu():
     """Show system selection menu."""
@@ -38,16 +39,17 @@ def show_menu():
     print("4. ❌ Exit")
     print()
 
+
 def check_system_requirements(system_name):
     """Check if system requirements are met."""
     print(f"\n🔍 Checking requirements for {system_name}...")
-    
+
     if system_name == "simple":
         required_files = [
             "src/main_runner.py",
             "ai_filter.py",
             "risk_manager.py",
-            "config/settings.json"
+            "config/settings.json",
         ]
     else:  # advanced
         required_files = [
@@ -55,9 +57,9 @@ def check_system_requirements(system_name):
             "config/settings.json",
             "models/mrben_ai_signal_filter_xgb.joblib",
             "models/mrben_lstm_balanced_new.h5",
-            "models/mrben_lstm_scaler_balanced.save"
+            "models/mrben_lstm_scaler_balanced.save",
         ]
-    
+
     missing_files = []
     for file_path in required_files:
         if os.path.exists(file_path):
@@ -65,34 +67,33 @@ def check_system_requirements(system_name):
         else:
             print(f"❌ {file_path}")
             missing_files.append(file_path)
-    
+
     if missing_files:
         print(f"\n⚠️ Missing files: {missing_files}")
         return False
-    
+
     return True
+
 
 def run_simple_system():
     """Run the simple trading system."""
     print("\n🚀 Starting Simple Trading System...")
-    print("="*40)
-    
+    print("=" * 40)
+
     if not check_system_requirements("simple"):
         print("❌ System requirements not met!")
         return False
-    
+
     try:
-        result = subprocess.run([
-            sys.executable, 'src/main_runner.py'
-        ], timeout=300)
-        
+        result = subprocess.run([sys.executable, 'src/main_runner.py'], timeout=300)
+
         if result.returncode == 0:
             print("✅ Simple system completed successfully")
             return True
         else:
             print("❌ Simple system failed")
             return False
-            
+
     except subprocess.TimeoutExpired:
         print("⚠️ Simple system is running (timeout reached)")
         return True
@@ -100,27 +101,26 @@ def run_simple_system():
         print(f"❌ Simple system error: {e}")
         return False
 
+
 def run_advanced_system():
     """Run the advanced trading system."""
     print("\n🚀 Starting Advanced Trading System...")
-    print("="*40)
-    
+    print("=" * 40)
+
     if not check_system_requirements("advanced"):
         print("❌ System requirements not met!")
         return False
-    
+
     try:
-        result = subprocess.run([
-            sys.executable, 'live_trader_clean.py'
-        ], timeout=300)
-        
+        result = subprocess.run([sys.executable, 'live_trader_clean.py'], timeout=300)
+
         if result.returncode == 0:
             print("✅ Advanced system completed successfully")
             return True
         else:
             print("❌ Advanced system failed")
             return False
-            
+
     except subprocess.TimeoutExpired:
         print("⚠️ Advanced system is running (timeout reached)")
         return True
@@ -128,11 +128,12 @@ def run_advanced_system():
         print(f"❌ Advanced system error: {e}")
         return False
 
+
 def show_comparison():
     """Show system comparison."""
     print("\n📊 SYSTEM COMPARISON")
-    print("="*50)
-    
+    print("=" * 50)
+
     print("\n🔧 SIMPLE SYSTEM (src/main_runner.py):")
     print("✅ Pros:")
     print("   - Simple and easy to understand")
@@ -143,7 +144,7 @@ def show_comparison():
     print("   - Limited features")
     print("   - Basic risk management")
     print("   - Simple logging")
-    
+
     print("\n🚀 ADVANCED SYSTEM (live_trader_clean.py):")
     print("✅ Pros:")
     print("   - Real-time data management")
@@ -156,21 +157,22 @@ def show_comparison():
     print("   - More complex code")
     print("   - Higher resource usage")
     print("   - More dependencies")
-    
+
     print("\n🎯 RECOMMENDATION:")
     print("For beginners: Use Simple System")
     print("For professionals: Use Advanced System")
 
+
 def main():
     """Main function."""
     print_header()
-    
+
     while True:
         show_menu()
-        
+
         try:
             choice = input("Enter your choice (1-4): ").strip()
-            
+
             if choice == "1":
                 run_simple_system()
                 break
@@ -185,12 +187,13 @@ def main():
                 break
             else:
                 print("❌ Invalid choice. Please try again.")
-                
+
         except KeyboardInterrupt:
             print("\n\n👋 Goodbye!")
             break
         except Exception as e:
             print(f"❌ Error: {e}")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

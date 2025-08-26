@@ -134,4 +134,4 @@ python run_trading_system.py
 
 ---
 
-**Ready to trade? Run `python run_trading_system.py` and see the magic! 🚀📈** 
+**Ready to trade? Run `python run_trading_system.py` and see the magic! 🚀📈**

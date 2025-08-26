@@ -63,23 +63,23 @@ graph TD
     B --> E[MRBENAdvancedAISystem]
     B --> F[EnhancedRiskManager]
     B --> G[EnhancedTradeExecutor]
-    
+
     D --> H[Market Data]
     E --> I[AI Models]
     F --> J[Risk Rules]
     G --> K[Trade Execution]
-    
+
     B --> L[Trading Loop]
     L --> M[Data Fetch]
     L --> N[Signal Generation]
     L --> O[Risk Check]
     L --> P[Trade Execution]
-    
+
     M --> D
     N --> E
     O --> F
     P --> G
-    
+
     Q[Utils] --> B
     Q --> D
     Q --> E

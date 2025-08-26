@@ -9,4 +9,3 @@
 \- When calling MT5/broker APIs, handle timeouts/retries and log failures.
 
 \- No network calls in unit tests; mock external services.
-

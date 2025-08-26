@@ -1,5 +1,5 @@
-from tensorflow.keras.models import load_model
 import numpy as np
+from tensorflow.keras.models import load_model
 
 # مسیر مدل
 model = load_model('models/lstm_trading_model.h5')

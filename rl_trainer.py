@@ -1,10 +1,12 @@
+import os
+
+import joblib
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import os
-import joblib
+
 
 # --- DQN Network ---
 class DQN(nn.Module):
@@ -15,31 +17,51 @@ class DQN(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(64, action_dim)
+            nn.Linear(64, action_dim),
         )
+
     def forward(self, x):
         return self.net(x)
+
 
 # --- Replay Buffer ---
 class ReplayBuffer:
     def __init__(self, max_size=10000):
         self.buffer = []
         self.max_size = max_size
+
     def push(self, transition):
         if len(self.buffer) >= self.max_size:
             self.buffer.pop(0)
         self.buffer.append(transition)
+
     def sample(self, batch_size):
         idx = np.random.choice(len(self.buffer), batch_size, replace=False)
         return [self.buffer[i] for i in idx]
+
     def __len__(self):
         return len(self.buffer)
+
 
 # --- Utility: Feature Extraction ---
 def extract_features(df):
     # Add technical indicators if not present
     if 'rsi' not in df.columns:
-        df['rsi'] = df['close'].rolling(14).apply(lambda x: 100 - 100/(1 + (np.mean(np.maximum(x.diff(), 0)) / (np.mean(np.abs(np.minimum(x.diff(), 0)))+1e-6))))
+        df['rsi'] = (
+            df['close']
+            .rolling(14)
+            .apply(
+                lambda x: 100
+                - 100
+                / (
+                    1
+                    + (
+                        np.mean(np.maximum(x.diff(), 0))
+                        / (np.mean(np.abs(np.minimum(x.diff(), 0))) + 1e-6)
+                    )
+                )
+            )
+        )
     if 'macd' not in df.columns:
         ema12 = df['close'].ewm(span=12).mean()
         ema26 = df['close'].ewm(span=26).mean()
@@ -54,6 +76,7 @@ def extract_features(df):
     df = df.fillna(0)
     return df
 
+
 # --- RL Trainer ---
 def train_dqn_from_log(log_path, model_path, scaler_path=None, epochs=20, batch_size=64):
     df = pd.read_csv(log_path, header=None)
@@ -61,22 +84,22 @@ def train_dqn_from_log(log_path, model_path, scaler_path=None, epochs=20, batch_
     base = ['time', 'signal', 'price', 'sl', 'tp', 'result', 'buy_proba', 'sell_proba']
     extra = [f'feature_{i}' for i in range(df.shape[1] - len(base))]
     columns = base + extra
-    df.columns = columns[:df.shape[1]]
+    df.columns = columns[: df.shape[1]]
     df = extract_features(df)
     # State features
     state_cols = ['price', 'rsi', 'macd', 'atr', 'buy_proba', 'sell_proba']
     state_cols = [c for c in state_cols if c in df.columns]
     # Label encoding for actions
-    action_map = {0:0, 1:1, -1:2}
-    reward_map = {'WIN':1, 'LOSS':-1, 'PENDING':0, 1:1, 0:0, -1:-1}
+    action_map = {0: 0, 1: 1, -1: 2}
+    reward_map = {'WIN': 1, 'LOSS': -1, 'PENDING': 0, 1: 1, 0: 0, -1: -1}
     # Build transitions
     states, actions, rewards, next_states, dones = [], [], [], [], []
-    for i in range(len(df)-1):
+    for i in range(len(df) - 1):
         s = df.iloc[i][state_cols].values.astype(np.float32)
         a = action_map.get(int(df.iloc[i]['signal']), 0)
         r = reward_map.get(df.iloc[i]['result'], 0)
-        s2 = df.iloc[i+1][state_cols].values.astype(np.float32)
-        done = 0 if i < len(df)-2 else 1
+        s2 = df.iloc[i + 1][state_cols].values.astype(np.float32)
+        done = 0 if i < len(df) - 2 else 1
         states.append(s)
         actions.append(a)
         rewards.append(r)
@@ -89,6 +112,7 @@ def train_dqn_from_log(log_path, model_path, scaler_path=None, epochs=20, batch_
     dones = np.array(dones)
     # Normalize states
     from sklearn.preprocessing import MinMaxScaler
+
     scaler = MinMaxScaler()
     states = scaler.fit_transform(states)
     next_states = scaler.transform(next_states)
@@ -108,9 +132,9 @@ def train_dqn_from_log(log_path, model_path, scaler_path=None, epochs=20, batch_
     gamma = 0.99
     for epoch in range(epochs):
         losses = []
-        for _ in range(len(buffer)//batch_size):
+        for _ in range(len(buffer) // batch_size):
             batch = buffer.sample(batch_size)
-            s, a, r, s2, d = zip(*batch)
+            s, a, r, s2, d = zip(*batch, strict=False)
             s = torch.tensor(np.array(s), dtype=torch.float32)
             a = torch.tensor(a, dtype=torch.long)
             r = torch.tensor(r, dtype=torch.float32)
@@ -120,7 +144,7 @@ def train_dqn_from_log(log_path, model_path, scaler_path=None, epochs=20, batch_
             q_a = q.gather(1, a.unsqueeze(1)).squeeze(1)
             with torch.no_grad():
                 q_next = dqn(s2).max(1)[0]
-                q_target = r + gamma * q_next * (1-d)
+                q_target = r + gamma * q_next * (1 - d)
             loss = loss_fn(q_a, q_target)
             optimizer.zero_grad()
             loss.backward()
@@ -129,9 +153,13 @@ def train_dqn_from_log(log_path, model_path, scaler_path=None, epochs=20, batch_
         print(f"Epoch {epoch+1}/{epochs} | Loss: {np.mean(losses):.4f}")
     # Save model
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
-    torch.save({'model_state_dict': dqn.state_dict(), 'state_dim': state_dim, 'action_dim': action_dim}, model_path)
+    torch.save(
+        {'model_state_dict': dqn.state_dict(), 'state_dim': state_dim, 'action_dim': action_dim},
+        model_path,
+    )
     print(f"✅ RL model saved to {model_path}")
     return dqn, scaler, state_cols
+
 
 # --- RL Inference ---
 def load_rl_model(model_path, scaler_path):
@@ -141,6 +169,7 @@ def load_rl_model(model_path, scaler_path):
     dqn.eval()
     scaler = joblib.load(scaler_path)
     return dqn, scaler
+
 
 def predict_signal_rl(state, dqn, scaler, state_cols):
     # state: dict of features
@@ -155,4 +184,4 @@ def predict_signal_rl(state, dqn, scaler, state_cols):
     elif action == 2:
         return -1
     else:
-        return 0 
+        return 0

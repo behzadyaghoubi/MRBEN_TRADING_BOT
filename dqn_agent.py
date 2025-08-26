@@ -1,10 +1,12 @@
 # dqn_agent.py - FINAL PROFESSIONAL VERSION
 
+import os
+import random
+from collections import deque
+
 import numpy as np
 import tensorflow as tf
-from collections import deque
-import random
-import os
+
 
 class DQNAgent:
     """
@@ -14,8 +16,18 @@ class DQNAgent:
     - Supports save/load, exploration decay, custom memory, and more.
     """
 
-    def __init__(self, state_shape, action_size, model_path=None, memory_size=5000, gamma=0.99,
-                 epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001):
+    def __init__(
+        self,
+        state_shape,
+        action_size,
+        model_path=None,
+        memory_size=5000,
+        gamma=0.99,
+        epsilon=1.0,
+        epsilon_min=0.01,
+        epsilon_decay=0.995,
+        learning_rate=0.001,
+    ):
         self.state_shape = state_shape
         self.action_size = action_size
         self.memory = deque(maxlen=memory_size)
@@ -38,14 +50,18 @@ class DQNAgent:
 
     def _build_model(self):
         """Create the neural network architecture."""
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=self.state_shape),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(self.action_size, activation='linear')
-        ])
-        model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate))
+        model = tf.keras.Sequential(
+            [
+                tf.keras.layers.Input(shape=self.state_shape),
+                tf.keras.layers.Flatten(),
+                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(self.action_size, activation='linear'),
+            ]
+        )
+        model.compile(
+            loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+        )
         return model
 
     def update_target_model(self):
@@ -106,6 +122,7 @@ class DQNAgent:
         self.model.load_weights(path)
         self.target_model.load_weights(path)
         print(f"✅ DQN weights loaded from {path}")
+
 
 # --- Simple test (dev only) ---
 if __name__ == "__main__":

@@ -11,16 +11,16 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 # Function to clean commands
 function Clean-Command {
     param([string]$Command)
-    
+
     $unwantedPrefixes = @('رز', 'ز', 'ر', 'زpython', 'رpython')
-    
+
     foreach ($prefix in $unwantedPrefixes) {
         if ($Command.StartsWith($prefix)) {
             $Command = $Command.Substring($prefix.Length)
             Write-Host "Removed unwanted prefix: $prefix" -ForegroundColor Yellow
         }
     }
-    
+
     return $Command.Trim()
 }
 
@@ -30,17 +30,17 @@ function Invoke-CommandSafely {
         [string]$Command,
         [string]$Description = ""
     )
-    
+
     Write-Host "`n📊 Executing: $Description" -ForegroundColor Cyan
-    
+
     # Clean the command
     $cleanCmd = Clean-Command $Command
     Write-Host "Command: $cleanCmd" -ForegroundColor Gray
-    
+
     try {
         # Run the command
         $result = Invoke-Expression $cleanCmd 2>&1
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ $Description completed successfully" -ForegroundColor Green
             return $true
@@ -80,4 +80,4 @@ if ($success) {
 }
 
 Write-Host "`nMR BEN AI System execution completed" -ForegroundColor Green
-Read-Host "Press Enter to continue" 
+Read-Host "Press Enter to continue"

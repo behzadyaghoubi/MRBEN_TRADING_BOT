@@ -243,5 +243,5 @@ The current system (`live_trader_clean.py`) includes:
 
 ---
 
-**🎯 For immediate use: `python live_trader_clean.py`**  
+**🎯 For immediate use: `python live_trader_clean.py`**
 **🔮 For future: `python -m src.main` (in development)**

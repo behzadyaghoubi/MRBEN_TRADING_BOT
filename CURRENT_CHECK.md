@@ -3,13 +3,13 @@
 
 ## Executive Summary
 
-**Current System Status**: The MRBEN system is currently in **STEP18 (Canary Activation / Standby)** phase with the **emergency brake (halt.flag) ACTIVE**. The system is configured for **PRO mode** with **ensemble strategy (Rule + PA + ML + LSTM)** but is **NOT currently executing live trades**. 
+**Current System Status**: The MRBEN system is currently in **STEP18 (Canary Activation / Standby)** phase with the **emergency brake (halt.flag) ACTIVE**. The system is configured for **PRO mode** with **ensemble strategy (Rule + PA + ML + LSTM)** but is **NOT currently executing live trades**.
 
-**Mode**: PRO (✅ `mrben/main.py` entry point, ✅ `SystemIntegrator` architecture)  
-**A/B Status**: Ready but NOT ACTIVE (✅ `ABRunner` class exists, ❌ No current A/B testing running)  
-**Ensemble**: All components ENABLED ([PA], [ML], [LSTM], [CONF], [VOTE] ready)  
-**Safety**: Emergency brake ACTIVE (halt.flag exists)  
-**Risk Config**: Conservative (0.05% risk, Exposure=1, Daily Loss=0.8%)  
+**Mode**: PRO (✅ `mrben/main.py` entry point, ✅ `SystemIntegrator` architecture)
+**A/B Status**: Ready but NOT ACTIVE (✅ `ABRunner` class exists, ❌ No current A/B testing running)
+**Ensemble**: All components ENABLED ([PA], [ML], [LSTM], [CONF], [VOTE] ready)
+**Safety**: Emergency brake ACTIVE (halt.flag exists)
+**Risk Config**: Conservative (0.05% risk, Exposure=1, Daily Loss=0.8%)
 
 ## State Table
 
@@ -105,7 +105,7 @@ Once verified, proceed to **Phase 2: Canary Live** with conservative risk settin
 
 ---
 
-**System Status**: 🟡 **READY FOR PHASE 1 VERIFICATION**  
-**Risk Level**: 🟡 **CONSERVATIVE** (0.05% risk, max 1 position)  
-**Emergency Status**: 🚨 **BRAKE ACTIVE** (halt.flag)  
+**System Status**: 🟡 **READY FOR PHASE 1 VERIFICATION**
+**Risk Level**: 🟡 **CONSERVATIVE** (0.05% risk, max 1 position)
+**Emergency Status**: 🚨 **BRAKE ACTIVE** (halt.flag)
 **Next Action**: **Start Shadow A/B Testing** in paper mode

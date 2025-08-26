@@ -381,7 +381,7 @@ class IntegratedAgentBridge(MRBENAgentBridge):
     def __init__(self, config, trading_mode, trader: MT5LiveTrader):
         super().__init__(config, trading_mode)
         self.trader = trader
-    
+
     def execute_tool(self, tool_name, input_data, **kwargs):
         # Integrate with trader for actual execution
         if tool_name == "place_order":
@@ -461,6 +461,6 @@ class IntegratedAgentBridge(MRBENAgentBridge):
 
 ---
 
-**Status**: ✅ Production Ready  
-**Version**: 1.0.0  
+**Status**: ✅ Production Ready
+**Version**: 1.0.0
 **Last Updated**: August 14, 2025

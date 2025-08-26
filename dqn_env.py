@@ -1,7 +1,8 @@
+import gym
 import numpy as np
 import pandas as pd
-import gym
 from gym import spaces
+
 
 class TradingEnvDQN(gym.Env):
     """
@@ -10,13 +11,14 @@ class TradingEnvDQN(gym.Env):
     - Reward بر اساس سود واقعی پوزیشن
     - Action: 0=BUY, 1=SELL, 2=HOLD
     """
+
     def __init__(self, df, window_size=10):
         super(TradingEnvDQN, self).__init__()
         self.df = df.reset_index(drop=True)
         self.window_size = window_size
         self.current_step = window_size
         self.done = False
-        self.position = 0    # +1: Buy, -1: Sell, 0: Flat
+        self.position = 0  # +1: Buy, -1: Sell, 0: Flat
         self.entry_price = 0
         self.total_profit = 0
 
@@ -25,8 +27,7 @@ class TradingEnvDQN(gym.Env):
         self.action_space = spaces.Discrete(3)
         # Observation: OHLC + (در آینده: اندیکاتورها) در پنجره window_size
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf,
-            shape=(window_size, 4), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(window_size, 4), dtype=np.float32
         )
 
     def reset(self):
@@ -38,7 +39,9 @@ class TradingEnvDQN(gym.Env):
         return self._next_observation()
 
     def _next_observation(self):
-        obs = self.df.iloc[self.current_step - self.window_size:self.current_step][['open', 'high', 'low', 'close']].values
+        obs = self.df.iloc[self.current_step - self.window_size : self.current_step][
+            ['open', 'high', 'low', 'close']
+        ].values
         return obs
 
     def step(self, action):
@@ -64,7 +67,9 @@ class TradingEnvDQN(gym.Env):
 
         # پاداش برای پوزیشن باز (مارکت بازی)
         if self.position != 0:
-            reward += (price - self.entry_price) * self.position * 0.01  # سود/زیان لحظه‌ای (قابل تنظیم)
+            reward += (
+                (price - self.entry_price) * self.position * 0.01
+            )  # سود/زیان لحظه‌ای (قابل تنظیم)
 
         # پایان اپیزود
         self.current_step += 1
@@ -80,6 +85,7 @@ class TradingEnvDQN(gym.Env):
         next_obs = self._next_observation()
         return next_obs, reward, self.done, {'total_profit': self.total_profit}
 
+
 # نمونه تست اولیه
 if __name__ == "__main__":
     df = pd.read_csv('ohlc_data.csv')
@@ -91,4 +97,6 @@ if __name__ == "__main__":
         action = env.action_space.sample()  # تصادفی برای تست
         next_state, reward, done, info = env.step(action)
         total_reward += reward
-    print(f"Total reward from random policy: {total_reward:.2f} | Total profit: {info['total_profit']:.2f}")
+    print(
+        f"Total reward from random policy: {total_reward:.2f} | Total profit: {info['total_profit']:.2f}"
+    )

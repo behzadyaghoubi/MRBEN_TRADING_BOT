@@ -1,15 +1,12 @@
 import os
-import sys
-import subprocess
 import winreg
-import ctypes
-from ctypes import wintypes
+
 
 def fix_keyboard_directly():
     """Fix keyboard issue directly without terminal commands."""
     print("🔧 حل مستقیم مشکل کیبورد")
     print("=" * 50)
-    
+
     try:
         # Method 1: Set environment variables directly
         print("1. تنظیم متغیرهای محیطی...")
@@ -18,20 +15,20 @@ def fix_keyboard_directly():
         os.environ['LC_CTYPE'] = 'en_US.UTF-8'
         os.environ['INPUT_METHOD'] = 'default'
         print("   ✅ متغیرهای محیطی تنظیم شدند")
-        
+
         # Method 2: Try to fix registry
         print("2. تنظیم Registry...")
         try:
             # Set English US as default keyboard layout
-            preload_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 
-                                       r"Keyboard Layout\Preload", 
-                                       0, winreg.KEY_WRITE)
+            preload_key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER, r"Keyboard Layout\Preload", 0, winreg.KEY_WRITE
+            )
             winreg.SetValueEx(preload_key, "1", 0, winreg.REG_SZ, "00000409")
             winreg.CloseKey(preload_key)
             print("   ✅ Registry تنظیم شد")
         except Exception as e:
             print(f"   ⚠️ خطا در Registry: {e}")
-        
+
         # Method 3: Create a simple test script
         print("3. ایجاد اسکریپت تست...")
         test_script = '''import sys
@@ -39,11 +36,11 @@ print("Python version:", sys.version)
 print("✅ Keyboard test successful!")
 print("No Persian characters detected!")
 '''
-        
+
         with open('keyboard_test.py', 'w', encoding='utf-8') as f:
             f.write(test_script)
         print("   ✅ اسکریپت تست ایجاد شد")
-        
+
         # Method 4: Create a simple analysis script
         print("4. ایجاد اسکریپت تحلیل...")
         analysis_script = '''import pandas as pd
@@ -83,11 +80,11 @@ def analyze_dataset():
 if __name__ == "__main__":
     analyze_dataset()
 '''
-        
+
         with open('direct_analysis.py', 'w', encoding='utf-8') as f:
             f.write(analysis_script)
         print("   ✅ اسکریپت تحلیل ایجاد شد")
-        
+
         # Method 5: Create LSTM training script
         print("5. ایجاد اسکریپت بازآموزی LSTM...")
         lstm_script = '''import pandas as pd
@@ -186,29 +183,30 @@ def train_lstm():
 if __name__ == "__main__":
     train_lstm()
 '''
-        
+
         with open('direct_lstm_training.py', 'w', encoding='utf-8') as f:
             f.write(lstm_script)
         print("   ✅ اسکریپت بازآموزی LSTM ایجاد شد")
-        
+
         print("\n✅ تمام ابزارها آماده شدند!")
         print("\n📋 مراحل بعدی:")
         print("1. python keyboard_test.py")
         print("2. python direct_analysis.py")
         print("3. python direct_lstm_training.py")
         print("4. python live_trader_clean.py")
-        
+
         return True
-        
+
     except Exception as e:
         print(f"❌ خطا: {e}")
         return False
 
+
 if __name__ == "__main__":
     success = fix_keyboard_directly()
-    
+
     if success:
         print("\n🎯 مشکل کیبورد حل شد!")
         print("حالا می‌توانید اسکریپت‌ها را اجرا کنید.")
     else:
-        print("\n❌ مشکل در حل کیبورد") 
+        print("\n❌ مشکل در حل کیبورد")

@@ -9,4 +9,4 @@ echo Testing system components:
 python test_system_update.py
 echo.
 echo Test completed!
-pause 
+pause

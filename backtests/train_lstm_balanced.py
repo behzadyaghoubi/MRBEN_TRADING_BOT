@@ -8,13 +8,13 @@ Train LSTM Model on Balanced Dataset
 Author: MRBEN Trading System
 """
 
-import pandas as pd
-import numpy as np
-import tensorflow as tf
-from tensorflow import keras
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 import logging
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow import keras
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -27,12 +27,33 @@ EPOCHS = 50
 BATCH_SIZE = 32
 
 FEATURES = [
-    'open', 'high', 'low', 'close', 'tick_volume',
-    'lstm_buy_proba', 'lstm_hold_proba', 'lstm_sell_proba',
-    'bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'bb_pos',
-    'atr', 'stoch_k', 'stoch_d', 'ema_fast', 'ema_slow', 'ema_cross',
-    'pinbar', 'engulfing', 'RSI', 'MACD', 'MACD_signal', 'MACD_hist'
+    'open',
+    'high',
+    'low',
+    'close',
+    'tick_volume',
+    'lstm_buy_proba',
+    'lstm_hold_proba',
+    'lstm_sell_proba',
+    'bb_upper',
+    'bb_middle',
+    'bb_lower',
+    'bb_width',
+    'bb_pos',
+    'atr',
+    'stoch_k',
+    'stoch_d',
+    'ema_fast',
+    'ema_slow',
+    'ema_cross',
+    'pinbar',
+    'engulfing',
+    'RSI',
+    'MACD',
+    'MACD_signal',
+    'MACD_hist',
 ]
+
 
 def create_sequences(df, lookback=LOOKBACK):
     X, y = [], []
@@ -41,11 +62,12 @@ def create_sequences(df, lookback=LOOKBACK):
     data_scaled = scaler.fit_transform(data)
     labels = df['label'].values
     for i in range(lookback, len(df)):
-        X.append(data_scaled[i-lookback:i])
+        X.append(data_scaled[i - lookback : i])
         y.append(labels[i])
     X = np.array(X)
     y = np.array(y)
     return X, y, scaler
+
 
 def build_lstm_model(input_shape):
     model = keras.Sequential()
@@ -58,20 +80,31 @@ def build_lstm_model(input_shape):
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
 
+
 def main():
     logger.info('Loading balanced dataset...')
     df = pd.read_csv(DATA_FILE)
     logger.info(f'Dataset shape: {df.shape}')
     X, y, scaler = create_sequences(df)
     logger.info(f'X shape: {X.shape}, y shape: {y.shape}')
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
     logger.info('Building LSTM model...')
     model = build_lstm_model((X.shape[1], X.shape[2]))
     logger.info('Training model...')
-    history = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=2)
+    history = model.fit(
+        X_train,
+        y_train,
+        validation_data=(X_test, y_test),
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
+        verbose=2,
+    )
     logger.info('Saving model and scaler...')
     model.save(MODEL_FILE)
     import joblib
+
     joblib.dump(scaler, SCALER_FILE)
     logger.info(f'Model saved to {MODEL_FILE}')
     logger.info(f'Scaler saved to {SCALER_FILE}')
@@ -83,5 +116,6 @@ def main():
     print('Predicted label distribution:', pd.Series(y_pred).value_counts())
     print('True label distribution:', pd.Series(y_test).value_counts())
 
+
 if __name__ == '__main__':
-    main() 
+    main()

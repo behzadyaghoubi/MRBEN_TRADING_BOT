@@ -2,11 +2,11 @@
 Unit tests for EnhancedRiskManager class.
 """
 
-import unittest
-from unittest.mock import Mock, patch, MagicMock
-import sys
 import os
+import sys
+import unittest
 from datetime import datetime
+from unittest.mock import Mock, patch
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
@@ -33,7 +33,7 @@ class TestEnhancedRiskManager(unittest.TestCase):
             adaptive_confidence=True,
             performance_window=20,
             confidence_adjustment_factor=0.1,
-            tf_minutes=15
+            tf_minutes=15,
         )
 
     def test_initialization(self):
@@ -51,18 +51,16 @@ class TestEnhancedRiskManager(unittest.TestCase):
         # Mock MT5 data
         mock_rates = []
         for i in range(20):
-            mock_rates.append({
-                'high': 2000.0 + i * 0.1,
-                'low': 1999.0 + i * 0.1,
-                'close': 1999.5 + i * 0.1
-            })
-        
+            mock_rates.append(
+                {'high': 2000.0 + i * 0.1, 'low': 1999.0 + i * 0.1, 'close': 1999.5 + i * 0.1}
+            )
+
         with patch('src.risk.manager.mt5.copy_rates_from_pos', return_value=mock_rates):
             with patch('src.risk.manager.mt5.TIMEFRAME_M15', 15):
                 atr = self.risk_manager.get_atr("XAUUSD.PRO")
                 self.assertIsNotNone(atr)
                 self.assertGreater(atr, 0)
-                
+
                 # Test caching
                 atr2 = self.risk_manager.get_atr("XAUUSD.PRO")
                 self.assertEqual(atr, atr2)
@@ -72,20 +70,20 @@ class TestEnhancedRiskManager(unittest.TestCase):
         # Mock ATR
         with patch.object(self.risk_manager, 'get_atr', return_value=2.0):
             sl, tp = self.risk_manager.calculate_dynamic_sl_tp("XAUUSD.PRO", 2000.0, "BUY")
-            
+
             # For BUY: SL below entry, TP above entry
             self.assertLess(sl, 2000.0)
             self.assertGreater(tp, 2000.0)
-            
+
             # Check distances
             sl_distance = 2000.0 - sl
             tp_distance = tp - 2000.0
             expected_sl_distance = 2.0 * 2.0  # ATR * multiplier
             expected_tp_distance = 2.0 * 4.0  # ATR * multiplier
-            
+
             self.assertAlmostEqual(sl_distance, expected_sl_distance, places=1)
             self.assertAlmostEqual(tp_distance, expected_tp_distance, places=1)
-            
+
             # Test SELL
             sl, tp = self.risk_manager.calculate_dynamic_sl_tp("XAUUSD.PRO", 2000.0, "SELL")
             self.assertGreater(sl, 2000.0)
@@ -100,14 +98,14 @@ class TestEnhancedRiskManager(unittest.TestCase):
         mock_info.volume_min = 0.01
         mock_info.volume_max = 10.0
         mock_info.volume_step = 0.01
-        
+
         with patch('src.risk.manager.mt5.symbol_info', return_value=mock_info):
             lot_size = self.risk_manager.calculate_lot_size(10000.0, 0.01, 2.0, "XAUUSD.PRO")
-            
+
             # Should be within bounds
             self.assertGreaterEqual(lot_size, 0.01)
             self.assertLessEqual(lot_size, 2.0)
-            
+
             # Should be aligned with volume step
             self.assertAlmostEqual(lot_size % 0.01, 0, places=2)
 
@@ -115,10 +113,10 @@ class TestEnhancedRiskManager(unittest.TestCase):
         """Test trade opening eligibility."""
         # Test basic conditions
         self.assertTrue(self.risk_manager.can_open_new_trade(10000.0, 10000.0, 0))
-        
+
         # Test max open trades limit
         self.assertFalse(self.risk_manager.can_open_new_trade(10000.0, 10000.0, 3))
-        
+
         # Test drawdown limit
         self.assertFalse(self.risk_manager.can_open_new_trade(9500.0, 10000.0, 0))
 
@@ -127,13 +125,13 @@ class TestEnhancedRiskManager(unittest.TestCase):
         # Add trailing stop
         self.risk_manager.add_trailing_stop(1, 2000.0, 1990.0, True)
         self.assertIn(1, self.risk_manager.trailing_stops)
-        
+
         # Check trailing stop data
         trailing_data = self.risk_manager.trailing_stops[1]
         self.assertEqual(trailing_data['entry_price'], 2000.0)
         self.assertEqual(trailing_data['current_sl'], 1990.0)
         self.assertTrue(trailing_data['is_buy'])
-        
+
         # Remove trailing stop
         self.risk_manager.remove_trailing_stop(1)
         self.assertNotIn(1, self.risk_manager.trailing_stops)
@@ -142,16 +140,16 @@ class TestEnhancedRiskManager(unittest.TestCase):
         """Test trailing stop updates."""
         # Add a trailing stop
         self.risk_manager.add_trailing_stop(1, 2000.0, 1990.0, True)
-        
+
         # Mock ATR and tick data
         with patch.object(self.risk_manager, 'get_atr', return_value=2.0):
             with patch('src.risk.manager.mt5.symbol_info_tick') as mock_tick:
                 mock_tick.return_value.bid = 2010.0
                 mock_tick.return_value.ask = 2010.1
-                
+
                 # Update trailing stops
                 mods = self.risk_manager.update_trailing_stops("XAUUSD.PRO")
-                
+
                 # Should have modifications for profitable position
                 if mods:
                     self.assertIsInstance(mods, list)
@@ -163,7 +161,7 @@ class TestEnhancedRiskManager(unittest.TestCase):
         """Test confidence threshold functionality."""
         # Test initial threshold
         self.assertEqual(self.risk_manager.get_current_confidence_threshold(), 0.35)
-        
+
         # Test threshold update
         self.risk_manager.current_confidence_threshold = 0.40
         self.assertEqual(self.risk_manager.get_current_confidence_threshold(), 0.40)
@@ -176,10 +174,10 @@ class TestEnhancedRiskManager(unittest.TestCase):
         mock_deal.entry = 1  # DEAL_ENTRY_OUT
         mock_deal.profit = 100.0  # Profitable trade
         mock_deal.time = datetime.now()
-        
+
         with patch('src.risk.manager.mt5.history_deals_get', return_value=[mock_deal]):
             self.risk_manager.update_performance_from_history("XAUUSD.PRO")
-            
+
             # Should have recorded performance
             self.assertIn(100.0, self.risk_manager.recent_performances)
 
@@ -187,17 +185,17 @@ class TestEnhancedRiskManager(unittest.TestCase):
         """Test adaptive confidence adjustment."""
         # Set up performance data
         self.risk_manager.recent_performances = [100.0] * 20  # 100% win rate
-        
+
         # Mock performance update
         with patch.object(self.risk_manager, 'get_atr', return_value=2.0):
             with patch('src.risk.manager.mt5.history_deals_get', return_value=[]):
                 self.risk_manager.update_performance_from_history("XAUUSD.PRO")
-                
+
                 # With high win rate, confidence should decrease
                 if self.risk_manager.adaptive_confidence:
                     self.assertLessEqual(
                         self.risk_manager.current_confidence_threshold,
-                        self.risk_manager.base_confidence_threshold
+                        self.risk_manager.base_confidence_threshold,
                     )
 
     def test_error_handling(self):
@@ -206,12 +204,12 @@ class TestEnhancedRiskManager(unittest.TestCase):
         with patch('src.risk.manager.mt5.copy_rates_from_pos', return_value=None):
             atr = self.risk_manager.get_atr("XAUUSD.PRO")
             self.assertIsNone(atr)
-        
+
         # Test lot size calculation with invalid data
         with patch('src.risk.manager.mt5.symbol_info', return_value=None):
             lot_size = self.risk_manager.calculate_lot_size(10000.0, 0.01, 0, "XAUUSD.PRO")
             self.assertEqual(lot_size, 0.01)  # Should return min_lot
-        
+
         # Test trailing stop update with no MT5
         with patch('src.risk.manager.mt5.symbol_info_tick', side_effect=Exception("MT5 error")):
             mods = self.risk_manager.update_trailing_stops("XAUUSD.PRO")
@@ -225,14 +223,14 @@ class TestEnhancedRiskManager(unittest.TestCase):
             # Should handle gracefully
             self.assertIsInstance(sl, float)
             self.assertIsInstance(tp, float)
-        
+
         # Test with very large ATR
         with patch.object(self.risk_manager, 'get_atr', return_value=1000.0):
             sl, tp = self.risk_manager.calculate_dynamic_sl_tp("XAUUSD.PRO", 2000.0, "BUY")
             # Should handle gracefully
             self.assertIsInstance(sl, float)
             self.assertIsInstance(tp, float)
-        
+
         # Test with invalid lot size parameters
         lot_size = self.risk_manager.calculate_lot_size(0, 0.01, 2.0, "XAUUSD.PRO")
         self.assertEqual(lot_size, 0.01)  # Should return min_lot
@@ -242,20 +240,17 @@ class TestEnhancedRiskManager(unittest.TestCase):
         # Test with invalid parameters
         with self.assertRaises(ValueError):
             EnhancedRiskManager(base_risk=-0.01)
-        
+
         with self.assertRaises(ValueError):
             EnhancedRiskManager(min_lot=-0.01)
-        
+
         with self.assertRaises(ValueError):
             EnhancedRiskManager(max_lot=0)
-        
+
         # Test with valid parameters
         try:
             risk_mgr = EnhancedRiskManager(
-                base_risk=0.02,
-                min_lot=0.05,
-                max_lot=5.0,
-                max_open_trades=5
+                base_risk=0.02, min_lot=0.05, max_lot=5.0, max_open_trades=5
             )
             self.assertIsNotNone(risk_mgr)
         except Exception as e:
@@ -266,13 +261,13 @@ class TestEnhancedRiskManager(unittest.TestCase):
         # Add many trailing stops
         for i in range(100):
             self.risk_manager.add_trailing_stop(i, 2000.0, 1990.0, True)
-        
+
         self.assertEqual(len(self.risk_manager.trailing_stops), 100)
-        
+
         # Remove all
         for i in range(100):
             self.risk_manager.remove_trailing_stop(i)
-        
+
         self.assertEqual(len(self.risk_manager.trailing_stops), 0)
 
     def tearDown(self):

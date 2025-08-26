@@ -70,10 +70,10 @@ During system startup, models are loaded from registry:
 def load_models_from_registry():
     with open("models/registry.json", "r") as f:
         registry = json.load(f)
-    
+
     ml_model_path = registry["ml"]["current"]
     lstm_model_path = registry["lstm"]["current"]
-    
+
     return ml_model_path, lstm_model_path
 ```
 
@@ -149,5 +149,5 @@ logging.basicConfig(level=logging.DEBUG)
 3. Final testing and handoff (Phase 8)
 
 ---
-**Status**: ✅ AutoML Implementation Complete  
+**Status**: ✅ AutoML Implementation Complete
 **Next**: Executive Report Generator (Phase 6)

@@ -78,24 +78,24 @@
 ```python
 def _calculate_risk_score(self, decision: DecisionCard, context: MarketContext) -> float:
     risk_score = 0.0
-    
+
     # Base risk from decision confidence
     risk_score += (1.0 - decision.confidence) * 0.3
-    
+
     # Risk from market regime
     if context.regime == "high":
         risk_score += 0.2
     elif context.regime == "low":
         risk_score += 0.1
-    
+
     # Risk from session
     if context.session == "overlap":
         risk_score += 0.1
-    
+
     # Risk from position size
     if decision.lot > 1.0:
         risk_score += 0.1
-    
+
     return min(risk_score, 1.0)
 ```
 

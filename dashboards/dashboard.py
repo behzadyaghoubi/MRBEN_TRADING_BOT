@@ -1,8 +1,8 @@
 # mrben_streamlit_dashboard.py - FINAL PROFESSIONAL VERSION
 
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 st.set_page_config(layout="wide", page_title="MR BEN Trading Dashboard")
 
@@ -64,14 +64,11 @@ if "pnl" in trades.columns and "timestamp" in trades.columns:
     try:
         equity = 10000 + trades["pnl"].cumsum()
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=trades["timestamp"], y=equity, mode='lines+markers', name='Equity'
-        ))
+        fig.add_trace(
+            go.Scatter(x=trades["timestamp"], y=equity, mode='lines+markers', name='Equity')
+        )
         fig.update_layout(
-            title="Equity Curve",
-            xaxis_title="زمان",
-            yaxis_title="سرمایه",
-            template="plotly_dark"
+            title="Equity Curve", xaxis_title="زمان", yaxis_title="سرمایه", template="plotly_dark"
         )
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
@@ -84,8 +81,15 @@ if "action" in trades.columns:
     st.subheader("🔄 آمار BUY/SELL")
     try:
         action_counts = trades["action"].value_counts()
-        fig2 = go.Figure([go.Bar(x=action_counts.index, y=action_counts.values, marker_color=['green', 'red'])])
-        fig2.update_layout(title="Buy/Sell Count", xaxis_title="Action", yaxis_title="Count", template="plotly_dark")
+        fig2 = go.Figure(
+            [go.Bar(x=action_counts.index, y=action_counts.values, marker_color=['green', 'red'])]
+        )
+        fig2.update_layout(
+            title="Buy/Sell Count",
+            xaxis_title="Action",
+            yaxis_title="Count",
+            template="plotly_dark",
+        )
         st.plotly_chart(fig2, use_container_width=True)
     except Exception as e:
         st.warning(f"خطا در رسم آمار BUY/SELL: {e}")

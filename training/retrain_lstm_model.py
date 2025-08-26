@@ -1,10 +1,10 @@
-import pandas as pd
+import joblib
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import joblib
-from sklearn.preprocessing import MinMaxScaler
+
 from models.lstm_model import LSTMModel
 
 # --- Load live trading log ---
@@ -23,8 +23,8 @@ y = df['signal'].apply(lambda x: 1 if x == 1 else 0).values  # Buy = 1, else = 0
 seq_len = 10
 X_seq, y_seq = [], []
 for i in range(len(X) - seq_len):
-    X_seq.append(X[i:i+seq_len])
-    y_seq.append(y[i+seq_len])
+    X_seq.append(X[i : i + seq_len])
+    y_seq.append(y[i + seq_len])
 
 X_seq = np.array(X_seq)
 y_seq = np.array(y_seq)
@@ -55,4 +55,4 @@ for epoch in range(10):
 
 # --- Save updated model ---
 torch.save(model.state_dict(), checkpoint_path)
-print("✅ LSTM model fine-tuned and saved.") 
+print("✅ LSTM model fine-tuned and saved.")

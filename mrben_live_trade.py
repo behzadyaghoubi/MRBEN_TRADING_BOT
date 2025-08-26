@@ -1,13 +1,13 @@
-import MetaTrader5 as mt5
-import pandas as pd
-import numpy as np
-import joblib
 import time
 
-from strategies.strategy_ema_crossover import ema_crossover_signal
-from strategies.strategy_breakout import breakout_signal
+import joblib
+import MetaTrader5 as mt5
+import pandas as pd
+
 from strategies.strategy_bollinger import bollinger_signal
-from strategies.strategy_risk_trailing import calc_position_size, trailing_stop
+from strategies.strategy_breakout import breakout_signal
+from strategies.strategy_ema_crossover import ema_crossover_signal
+from strategies.strategy_risk_trailing import calc_position_size
 
 # اتصال به MT5
 mt5.initialize()
@@ -20,6 +20,7 @@ lot_min = 0.01
 clf = joblib.load("mrben_ai_signal_filter.joblib")
 capital = 10000  # فرض اولیه برای حجم؛ می‌تونی با حساب لایو داینامیکش کنی
 
+
 def get_live_data(symbol, timeframe, window):
     rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, window)
     if rates is None or len(rates) == 0:
@@ -27,6 +28,7 @@ def get_live_data(symbol, timeframe, window):
     df = pd.DataFrame(rates)
     df['time'] = pd.to_datetime(df['time'], unit='s')
     return df
+
 
 while True:
     df = get_live_data(symbol, timeframe, window)

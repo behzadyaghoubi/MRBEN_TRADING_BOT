@@ -1,75 +1,48 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-MR BEN Regime Detection Module
-"""
+from __future__ import annotations
 
-import logging
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
-logger = logging.getLogger(__name__)
 
 class RegimeLabel(Enum):
-    """Market regime labels"""
-    BULL_TREND = "BULL_TREND"
-    BEAR_TREND = "BEAR_TREND"
-    SIDEWAYS = "SIDEWAYS"
-    HIGH_VOL = "HIGH_VOL"
-    LOW_VOL = "LOW_VOL"
-    NORMAL = "NORMAL"
+    UNKNOWN = "UNKNOWN"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    EXTREME = "EXTREME"
+
+
+@dataclass
+class RegimeConfig:
+    thr_extreme: float = 0.020
+    thr_high: float = 0.015
+    thr_medium: float = 0.010
+
 
 @dataclass
 class RegimeSnapshot:
-    """Market regime snapshot"""
+    volatility: float
     label: RegimeLabel
-    confidence: float
-    scores: Dict[str, float]
-    timestamp: float
 
-def infer_regime(bars: List[Dict[str, Any]], micro: Optional[Dict[str, Any]], config: Dict[str, Any]) -> RegimeSnapshot:
-    """Infer market regime from price data"""
-    try:
-        if not bars or len(bars) < 20:
-            return RegimeSnapshot(RegimeLabel.NORMAL, 0.5, {}, 0.0)
-        
-        # Simple regime detection based on price movement
-        prices = [float(bar['close']) for bar in bars[-20:]]
-        
-        # Calculate trend
-        trend_score = (prices[-1] - prices[0]) / prices[0]
-        
-        # Calculate volatility
-        returns = [(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
-        volatility = sum(abs(r) for r in returns) / len(returns)
-        
-        # Determine regime
-        if abs(trend_score) > 0.02:  # Strong trend
-            if trend_score > 0:
-                label = RegimeLabel.BULL_TREND
-                confidence = min(0.9, 0.5 + abs(trend_score) * 10)
+
+class RegimeClassifier:
+    def __init__(self, cfg: RegimeConfig | None = None) -> None:
+        self.cfg = cfg or RegimeConfig()
+
+    def classify_by_volatility(self, volatility: float | None) -> RegimeSnapshot:
+        if volatility is None:
+            return RegimeSnapshot(volatility=0.0, label=RegimeLabel.UNKNOWN)
+        v = float(volatility)
+        if v > self.cfg.thr_extreme:
+            label = RegimeLabel.EXTREME
+        elif v > self.cfg.thr_high:
+            label = RegimeLabel.HIGH
+        elif v > self.cfg.thr_medium:
+            label = RegimeLabel.MEDIUM
         else:
-                label = RegimeLabel.BEAR_TREND
-                confidence = min(0.9, 0.5 + abs(trend_score) * 10)
-        elif volatility > 0.015:  # High volatility
-            label = RegimeLabel.HIGH_VOL
-            confidence = min(0.8, 0.5 + volatility * 20)
-        elif volatility < 0.005:  # Low volatility
-            label = RegimeLabel.LOW_VOL
-            confidence = min(0.8, 0.5 + (0.01 - volatility) * 20)
-            else:
-            label = RegimeLabel.NORMAL
-            confidence = 0.6
-        
-        scores = {
-            "trend": trend_score,
-            "volatility": volatility,
-            "regime_confidence": confidence
-        }
-        
-        return RegimeSnapshot(label, confidence, scores, 0.0)
-        
-    except Exception as e:
-        logger.error(f"Error in regime detection: {e}")
-        return RegimeSnapshot(RegimeLabel.NORMAL, 0.5, {"error": str(e)}, 0.0)
+            label = RegimeLabel.LOW
+        return RegimeSnapshot(volatility=v, label=label)
+
+
+def create_regime_classifier(cfg: RegimeConfig | None = None) -> RegimeClassifier:
+    return RegimeClassifier(cfg=cfg)

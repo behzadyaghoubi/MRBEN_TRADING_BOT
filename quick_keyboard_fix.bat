@@ -20,4 +20,4 @@ echo.
 echo ========================================
 echo    All tests completed!
 echo ========================================
-pause 
+pause

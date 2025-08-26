@@ -1,12 +1,16 @@
+import os
 import time
-import pandas as pd
-import MetaTrader5 as mt5
 from datetime import datetime
+
+import MetaTrader5 as mt5
+import pandas as pd
+
 # از ماژول جدید LSTM استفاده کن
 from lstm_live_signal_generator import generate_lstm_live_signal
+
 from ai_filter import AISignalFilter
 from trade_executor import send_order
-import os
+
 
 # اتصال به متاتریدر
 def connect():

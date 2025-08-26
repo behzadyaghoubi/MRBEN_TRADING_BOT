@@ -9,7 +9,7 @@
 # Find actual position ticket for trailing stop
 pos = None
 for p in (mt5.positions_get(symbol=self.config.SYMBOL) or []):
-    if (abs(p.volume) == req['volume'] and 
+    if (abs(p.volume) == req['volume'] and
         abs(p.price_open - req['price']) < (mt5.symbol_info(self.config.SYMBOL).point * 5)):
         pos = p
         break
@@ -25,13 +25,13 @@ if pos:
 def _volume_for_trade(self, entry: float, sl: float) -> float:
     if not self.config.USE_RISK_BASED_VOLUME:
         return float(self.config.FIXED_VOLUME)
-    
+
     # Calculate risk-based volume using SL distance
     sl_dist = abs(entry - sl)
     acc = self.trade_executor.get_account_info()
     balance = float(acc.get('balance', 10000.0))
     dynamic_volume = self.risk_manager.calculate_lot_size(balance, self.config.BASE_RISK, sl_dist, self.config.SYMBOL)
-    
+
     # Cap volume at fixed amount for risk control
     max_volume = float(self.config.FIXED_VOLUME)
     return min(dynamic_volume, max_volume)
@@ -45,12 +45,12 @@ def is_spread_ok_dynamic(symbol: str, max_atr_frac: float = 0.15) -> Tuple[bool,
     # Get current spread
     ok, spread_pts, _ = is_spread_ok(symbol, 10**9)
     spread_price = spread_pts * info.point
-    
+
     # Get ATR for comparison
     risk_manager = EnhancedRiskManager()
     atr = risk_manager.get_atr(symbol)
     atr_threshold = atr * max_atr_frac
-    
+
     return (spread_price <= atr_threshold), spread_price, atr_threshold
 ```
 

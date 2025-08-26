@@ -1,6 +1,6 @@
-import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
+import pandas as pd
+
 
 def analyze_backtest_results(file_path="ai_trading_results_pro.csv"):
     df = pd.read_csv(file_path)
@@ -21,13 +21,13 @@ def analyze_backtest_results(file_path="ai_trading_results_pro.csv"):
 
     # Calculate basic stats
     total_trades = df.shape[0] - 1  # assume one trade per row except header
-    winning_trades = ((df['equity'].diff() > 0).sum())
-    losing_trades = ((df['equity'].diff() < 0).sum())
+    winning_trades = (df['equity'].diff() > 0).sum()
+    losing_trades = (df['equity'].diff() < 0).sum()
     win_rate = winning_trades / total_trades * 100 if total_trades > 0 else 0
     avg_trade_return = df['equity'].diff().mean()
 
     # Print summary
-    print(f"=== Backtest Performance Summary ===")
+    print("=== Backtest Performance Summary ===")
     print(f"Total trades: {total_trades}")
     print(f"Winning trades: {winning_trades}")
     print(f"Losing trades: {losing_trades}")
@@ -39,7 +39,7 @@ def analyze_backtest_results(file_path="ai_trading_results_pro.csv"):
     print(f"Final Equity: {final_equity:.2f}")
 
     # Plot equity curve
-    plt.figure(figsize=(12,6))
+    plt.figure(figsize=(12, 6))
     plt.plot(equity, label="Equity Curve")
     plt.title("Equity Curve")
     plt.xlabel("Time")
@@ -50,7 +50,7 @@ def analyze_backtest_results(file_path="ai_trading_results_pro.csv"):
     plt.show()
 
     # Plot drawdown curve
-    plt.figure(figsize=(12,6))
+    plt.figure(figsize=(12, 6))
     plt.plot(drawdown, color='red', label="Drawdown")
     plt.title("Drawdown Curve")
     plt.xlabel("Time")
@@ -59,6 +59,7 @@ def analyze_backtest_results(file_path="ai_trading_results_pro.csv"):
     plt.grid()
     plt.savefig("drawdown_curve.png", dpi=300)
     plt.show()
+
 
 if __name__ == "__main__":
     analyze_backtest_results()

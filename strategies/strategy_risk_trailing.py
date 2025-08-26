@@ -6,6 +6,7 @@ def calc_position_size(capital, risk_per_trade, atr, stop_multiplier=2):
     lot_size = risk_amount / sl_pips
     return max(round(lot_size, 2), 0.01)
 
+
 def trailing_stop(entry_price, highest_price, atr, trail_multiplier=1.5, side='LONG'):
     """
     برای long: حد ضرر رو در فاصله trailing از سقف جدید قرار می‌دهد.

@@ -3,7 +3,7 @@
     "enabled": true,
     "version": "1.0.0",
     "description": "Advanced Signal Generation System Configuration",
-    
+
     "core_settings": {
       "enable_ml": true,
       "enable_fusion": true,
@@ -15,7 +15,7 @@
       "max_fusion_history": 5000,
       "max_validation_history": 5000
     },
-    
+
     "ml_models": {
       "signal_classifier": {
         "type": "RandomForestClassifier",
@@ -49,7 +49,7 @@
         "batch_size": 100
       }
     },
-    
+
     "signal_generation": {
       "trend_following": {
         "enabled": true,
@@ -111,7 +111,7 @@
         "min_pattern_confidence": 0.6
       }
     },
-    
+
     "signal_fusion": {
       "methods": {
         "weighted_average": {
@@ -153,7 +153,7 @@
         "direction_consistency_threshold": 0.6
       }
     },
-    
+
     "signal_validation": {
       "quality_assessment": {
         "strength_threshold": 0.3,
@@ -180,7 +180,7 @@
         "trend_alignment": true
       }
     },
-    
+
     "multi_timeframe": {
       "enabled": true,
       "timeframes": ["1m", "5m", "15m", "1h", "4h", "1d"],
@@ -196,7 +196,7 @@
       "consensus_threshold": 0.6,
       "divergence_detection": true
     },
-    
+
     "performance_tracking": {
       "metrics": {
         "signal_accuracy": true,
@@ -216,7 +216,7 @@
         "max_risk": 0.7
       }
     },
-    
+
     "notifications": {
       "enabled": true,
       "signal_generation": {
@@ -235,7 +235,7 @@
         "training_failures": true
       }
     },
-    
+
     "integration": {
       "decision_engine": {
         "enabled": true,
@@ -260,7 +260,7 @@
         "volatility_alignment": true
       }
     },
-    
+
     "logging": {
       "level": "INFO",
       "structured_logging": true,
@@ -268,7 +268,7 @@
       "performance_logging": true,
       "error_logging": true
     },
-    
+
     "maintenance": {
       "model_retraining": {
         "enabled": true,

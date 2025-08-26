@@ -269,6 +269,6 @@ Copy-Item models/backup/lstm_model.h5 models/
 - **Quarterly**: Regulatory compliance report
 
 ---
-**Last Updated**: 2025-08-20  
-**Version**: 1.0  
+**Last Updated**: 2025-08-20
+**Version**: 1.0
 **Status**: Production Ready

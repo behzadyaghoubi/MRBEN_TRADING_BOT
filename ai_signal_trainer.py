@@ -1,8 +1,8 @@
+import joblib
 import pandas as pd
 import xgboost as xgb
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-import joblib
+from sklearn.model_selection import train_test_split
 
 # --- فایل‌ها را بخوانید ---
 signals = pd.read_csv("final_signal.csv")
@@ -18,7 +18,7 @@ merged = pd.merge_asof(
     trades.sort_values('timestamp'),
     on='timestamp',
     direction='forward',
-    tolerance=pd.Timedelta('3h')
+    tolerance=pd.Timedelta('3h'),
 )
 
 # --- حذف مواردی که سود ثبت نشده ---
@@ -42,8 +42,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     features, labels, test_size=0.3, random_state=42
 )
 model = xgb.XGBClassifier(
-    n_estimators=100, max_depth=4, learning_rate=0.1, 
-    use_label_encoder=False, eval_metric='logloss'
+    n_estimators=100, max_depth=4, learning_rate=0.1, use_label_encoder=False, eval_metric='logloss'
 )
 model.fit(X_train, y_train)
 

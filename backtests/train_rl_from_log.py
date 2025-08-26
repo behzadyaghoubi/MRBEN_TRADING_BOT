@@ -1,6 +1,7 @@
 # train_rl_from_log.py
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from rl_agent import DQNAgent
 
 LOG_FILE = "live_trades_log.csv"
@@ -14,12 +15,12 @@ df = pd.read_csv(LOG_FILE)
 states = df[["SMA_FAST", "RSI", "pinbar", "engulfing", "close"]].values
 actions = df["action"].map({"BUY": 0, "SELL": 1, "HOLD": 2}).values
 rewards = df.get("profit", df.get("result", pd.Series(np.zeros(len(df))))).values
-dones = [False] * (len(df)-1) + [True]
+dones = [False] * (len(df) - 1) + [True]
 
 agent = DQNAgent(state_size=states.shape[1], action_size=3, model_path=MODEL_FILE)
 
-for i in range(len(df)-1):
-    agent.remember(states[i], actions[i], rewards[i], states[i+1], dones[i])
+for i in range(len(df) - 1):
+    agent.remember(states[i], actions[i], rewards[i], states[i + 1], dones[i])
 agent.replay(batch_size=BATCH_SIZE)
 
 agent.save(MODEL_FILE)

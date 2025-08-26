@@ -17,8 +17,16 @@ df['RSI'] = talib.RSI(df['close'], timeperiod=14)
 # استراتژی ساده: کراسینگ SMA و RSI با محدودیت بازتر
 signals = []
 for i in range(1, len(df)):
-    buy = (df['SMA_FAST'].iloc[i] > df['SMA_SLOW'].iloc[i]) and (df['SMA_FAST'].iloc[i-1] <= df['SMA_SLOW'].iloc[i-1]) and (df['RSI'].iloc[i] < 65)
-    sell = (df['SMA_FAST'].iloc[i] < df['SMA_SLOW'].iloc[i]) and (df['SMA_FAST'].iloc[i-1] >= df['SMA_SLOW'].iloc[i-1]) and (df['RSI'].iloc[i] > 35)
+    buy = (
+        (df['SMA_FAST'].iloc[i] > df['SMA_SLOW'].iloc[i])
+        and (df['SMA_FAST'].iloc[i - 1] <= df['SMA_SLOW'].iloc[i - 1])
+        and (df['RSI'].iloc[i] < 65)
+    )
+    sell = (
+        (df['SMA_FAST'].iloc[i] < df['SMA_SLOW'].iloc[i])
+        and (df['SMA_FAST'].iloc[i - 1] >= df['SMA_SLOW'].iloc[i - 1])
+        and (df['RSI'].iloc[i] > 35)
+    )
     if buy:
         signals.append("BUY")
     elif sell:

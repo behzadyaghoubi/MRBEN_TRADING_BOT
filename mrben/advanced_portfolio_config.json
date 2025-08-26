@@ -3,7 +3,7 @@
     "enabled": true,
     "version": "1.0.0",
     "description": "Advanced Portfolio Management System Configuration",
-    
+
     "core_settings": {
       "enable_ml": true,
       "enable_correlation": true,
@@ -14,7 +14,7 @@
       "max_risk_history": 5000,
       "max_allocation_history": 5000
     },
-    
+
     "ml_models": {
       "risk_predictor": {
         "type": "RandomForestRegressor",
@@ -48,7 +48,7 @@
         "batch_size": 100
       }
     },
-    
+
     "portfolio_strategies": {
       "equal_weight": {
         "enabled": true,
@@ -92,7 +92,7 @@
         "volatility_adjustment": true
       }
     },
-    
+
     "allocation_methods": {
       "static": {
         "enabled": true,
@@ -139,7 +139,7 @@
         "ensemble_methods": true
       }
     },
-    
+
     "risk_management": {
       "risk_metrics": {
         "volatility": {
@@ -196,7 +196,7 @@
         "reporting_frequency": "daily"
       }
     },
-    
+
     "correlation_analysis": {
       "correlation_calculation": {
         "method": "pearson",
@@ -217,7 +217,7 @@
         "volatility_adjustment": true
       }
     },
-    
+
     "rebalancing": {
       "rebalancing_rules": {
         "threshold_based": {
@@ -250,7 +250,7 @@
         "tax_consideration": false
       }
     },
-    
+
     "performance_tracking": {
       "metrics": {
         "return_metrics": true,
@@ -271,7 +271,7 @@
         "risk_attribution": true
       }
     },
-    
+
     "notifications": {
       "enabled": true,
       "portfolio_alerts": {
@@ -292,7 +292,7 @@
         "quarterly_performance": true
       }
     },
-    
+
     "integration": {
       "position_management": {
         "enabled": true,
@@ -319,7 +319,7 @@
         "correlation_data": true
       }
     },
-    
+
     "logging": {
       "level": "INFO",
       "structured_logging": true,
@@ -327,7 +327,7 @@
       "performance_logging": true,
       "error_logging": true
     },
-    
+
     "maintenance": {
       "model_retraining": {
         "enabled": true,

@@ -1,8 +1,8 @@
+import joblib
 import numpy as np
 import pandas as pd
-from tensorflow.keras.models import load_model
 from tensorflow.keras.losses import MeanSquaredError
-import joblib
+from tensorflow.keras.models import load_model
 
 # پارامترها (دقیقاً مثل زمان آموزش)
 WINDOW_PAST = 20
@@ -14,6 +14,7 @@ model = load_model("mrben_narx_multistep_model.h5", compile=False)
 model.compile(optimizer='adam', loss=MeanSquaredError())
 scaler_X = joblib.load("mrben_narx_multistep_scaler_X.save")
 scaler_y = joblib.load("mrben_narx_multistep_scaler_y.save")
+
 
 def narx_predict(df):
     """
@@ -30,6 +31,7 @@ def narx_predict(df):
     y_pred_scaled = model.predict(X_scaled)
     y_pred = scaler_y.inverse_transform(y_pred_scaled)
     return y_pred.flatten()  # خروجی: ۵ عدد قیمت آینده
+
 
 # --- تست سریع برای اطمینان ---
 if __name__ == "__main__":

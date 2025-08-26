@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 
 print("Simple test without keyboard input")
 print(f"Python version: {sys.version}")

@@ -1,8 +1,8 @@
-import os
 import json
-import threading
+import os
 import subprocess
-from flask import Flask, render_template_string, request, redirect, url_for, flash
+
+from flask import Flask, flash, redirect, render_template_string, request, url_for
 
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
 CONFIG_PATH = os.path.join(PROJECT_PATH, 'config.json')
@@ -121,25 +121,31 @@ TEMPLATE = '''
 </html>
 '''
 
+
 # --- Helper Functions ---
 def load_config():
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+    with open(CONFIG_PATH, encoding='utf-8') as f:
         return json.load(f)
+
 
 def save_config(config):
     with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2)
 
+
 def check_model(path):
     return os.path.exists(path)
+
 
 def check_mt5_connection():
     # Dummy check for now (could be improved)
     return True
 
+
 def is_trading_running():
     global trading_process
     return trading_process is not None and trading_process.poll() is None
+
 
 # --- Flask Routes ---
 @app.route('/', methods=['GET'])
@@ -150,9 +156,10 @@ def dashboard():
         'lstm': check_model(os.path.join(PROJECT_PATH, 'models', 'mrben_lstm_model.h5')),
         'technical': config['models'].get('use_technical', True),
         'mt5': check_mt5_connection(),
-        'trading': is_trading_running()
+        'trading': is_trading_running(),
     }
     return render_template_string(TEMPLATE, config=config, status=status)
+
 
 @app.route('/save', methods=['POST'])
 def save():
@@ -177,6 +184,7 @@ def save():
     flash('Settings saved successfully!')
     return redirect(url_for('dashboard'))
 
+
 @app.route('/start', methods=['POST'])
 def start_trading():
     global trading_process
@@ -186,6 +194,7 @@ def start_trading():
     else:
         flash('Trading is already running.')
     return redirect(url_for('dashboard'))
+
 
 @app.route('/stop', methods=['POST'])
 def stop_trading():
@@ -198,5 +207,6 @@ def stop_trading():
         flash('Trading is not running.')
     return redirect(url_for('dashboard'))
 
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) 
+    app.run(debug=True, port=5000)

@@ -13,10 +13,11 @@ Feature Engineering Pro - Add Advanced Technical Indicators
 Author: MRBEN Trading System
 """
 
-import pandas as pd
-import numpy as np
-import talib
 import logging
+
+import numpy as np
+import pandas as pd
+import talib
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -48,9 +49,7 @@ def add_advanced_features(df):
     upper_wick = df['high'] - df[['close', 'open']].max(axis=1)
     lower_wick = df[['close', 'open']].min(axis=1) - df['low']
     pinbar = (
-        (candle_range > 0) &
-        (upper_wick > candle_range * 0.4) &
-        (lower_wick > candle_range * 0.4)
+        (candle_range > 0) & (upper_wick > candle_range * 0.4) & (lower_wick > candle_range * 0.4)
     )
     df['pinbar'] = pinbar.astype(int)
     # Price Action: Engulfing
@@ -67,6 +66,7 @@ def add_advanced_features(df):
         df['MACD_hist'] = macd_hist
     return df
 
+
 def main():
     logger.info('Loading data...')
     df = pd.read_csv(INPUT_FILE)
@@ -78,5 +78,6 @@ def main():
     logger.info(f'Features saved to {OUTPUT_FILE}')
     print(df.head())
 
+
 if __name__ == '__main__':
-    main() 
+    main()

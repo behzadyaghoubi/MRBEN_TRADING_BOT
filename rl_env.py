@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+
 
 class TradingEnv:
     def __init__(self, csv_path="live_trades.csv", window_size=3):
@@ -18,7 +18,7 @@ class TradingEnv:
         return self.get_state()
 
     def get_state(self):
-        window = self.data.iloc[self.current_step - self.window_size:self.current_step]
+        window = self.data.iloc[self.current_step - self.window_size : self.current_step]
         state = window[["price"]].values.flatten()
         return state
 

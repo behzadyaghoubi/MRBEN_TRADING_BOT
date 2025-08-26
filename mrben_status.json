@@ -1,7 +1,7 @@
 {
   "status": "running",
-  "last_update": "2025-08-25T18:19:29.303975",
-  "uptime": 1891.057327,
+  "last_update": "2025-08-25T23:31:56.575691",
+  "uptime": 6268.120955,
   "components": 4,
   "component_status": {
     "regime_detector": "online",

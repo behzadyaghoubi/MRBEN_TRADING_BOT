@@ -1,6 +1,7 @@
 import json
-import os
 import logging
+import os
+
 import MetaTrader5 as mt5
 
 # Mapping string timeframe from JSON to MetaTrader5 constants
@@ -12,8 +13,9 @@ TIMEFRAME_MAP = {
     "H1": mt5.TIMEFRAME_H1,
     "H4": mt5.TIMEFRAME_H4,
     "D1": mt5.TIMEFRAME_D1,
-    "W1": mt5.TIMEFRAME_W1
+    "W1": mt5.TIMEFRAME_W1,
 }
+
 
 class TradingConfig:
     def __init__(self, config_path='config.json'):
@@ -35,7 +37,7 @@ class TradingConfig:
             logging.warning(f"Config file {self.config_path} not found. Using defaults.")
             return {}
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
             logging.error(f"Error loading config: {e}. Using defaults.")
@@ -88,11 +90,13 @@ class TradingConfig:
         self.daily_summary = notifications.get('daily_summary', True)
         # --- سازگاری با کد اصلی ---
         self.SYMBOL = self.symbol
-        self.ML_FILTER_MODEL_PATH = self.config.get('ai', {}).get('model_path', "models/mrben_ai_signal_filter_xgb.joblib")
+        self.ML_FILTER_MODEL_PATH = self.config.get('ai', {}).get(
+            'model_path', "models/mrben_ai_signal_filter_xgb.joblib"
+        )
         self.RETRY_DELAY = 10
         self.SLEEP_SECONDS = 60
         self.DATA_DIR = "data"
 
     def reload(self):
         self.config = self._load_config()
-        self._set_attributes() 
+        self._set_attributes()

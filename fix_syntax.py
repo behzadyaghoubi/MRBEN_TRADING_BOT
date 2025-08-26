@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 # Read the file
-with open('live_trader_clean_final.py', 'r', encoding='utf-8') as f:
+with open('live_trader_clean_final.py', encoding='utf-8') as f:
     lines = f.readlines()
 
 # Fix the syntax error in the _normalize_volume method

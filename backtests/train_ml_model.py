@@ -1,9 +1,10 @@
+import os
+
+import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score
-import joblib
-import os
+from sklearn.model_selection import train_test_split
 
 data_file = "signals_for_ai_training.csv"
 
@@ -29,7 +30,7 @@ model = RandomForestClassifier(
     min_samples_leaf=3,
     random_state=42,
     n_jobs=-1,
-    class_weight='balanced'
+    class_weight='balanced',
 )
 model.fit(X_train, y_train)
 

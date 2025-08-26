@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import codecs
 
 # Read the file with UTF-8-SIG to handle BOM
-with open('live_trader_clean.py', 'r', encoding='utf-8-sig') as f:
+with open('live_trader_clean.py', encoding='utf-8-sig') as f:
     content = f.read()
 
 # Write the file with clean UTF-8 encoding

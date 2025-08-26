@@ -1,13 +1,13 @@
 # build_ml_training_dataset_from_backtest.py - FINAL PROFESSIONAL VERSION
 
 import pandas as pd
-import numpy as np
 import talib
 
 # --- Backtest Parameters ---
-TP = 20         # Take Profit (price units/pips)
-SL = 20         # Stop Loss (price units/pips)
-LOOKAHEAD = 5   # Number of candles to look ahead
+TP = 20  # Take Profit (price units/pips)
+SL = 20  # Stop Loss (price units/pips)
+LOOKAHEAD = 5  # Number of candles to look ahead
+
 
 def generate_signals(df):
     """
@@ -23,6 +23,7 @@ def generate_signals(df):
             df.at[i, 'signal'] = "SELL"
     return df
 
+
 def backtest_labels(df):
     """
     Simulate trade outcome for each signal using TP/SL & lookahead window.
@@ -36,29 +37,30 @@ def backtest_labels(df):
         result = None
         if signal == "BUY":
             # Max high, min low in lookahead window
-            take = df['high'].iloc[i+1:i+LOOKAHEAD+1].max()
-            stop = df['low'].iloc[i+1:i+LOOKAHEAD+1].min()
+            take = df['high'].iloc[i + 1 : i + LOOKAHEAD + 1].max()
+            stop = df['low'].iloc[i + 1 : i + LOOKAHEAD + 1].min()
             if take >= entry + TP:
                 result = 1  # Win
             elif stop <= entry - SL:
                 result = 0  # Loss
             else:
-                result = int(df['close'].iloc[i+LOOKAHEAD] > entry)
+                result = int(df['close'].iloc[i + LOOKAHEAD] > entry)
         elif signal == "SELL":
-            take = df['low'].iloc[i+1:i+LOOKAHEAD+1].min()
-            stop = df['high'].iloc[i+1:i+LOOKAHEAD+1].max()
+            take = df['low'].iloc[i + 1 : i + LOOKAHEAD + 1].min()
+            stop = df['high'].iloc[i + 1 : i + LOOKAHEAD + 1].max()
             if take <= entry - TP:
                 result = 1
             elif stop >= entry + SL:
                 result = 0
             else:
-                result = int(df['close'].iloc[i+LOOKAHEAD] < entry)
+                result = int(df['close'].iloc[i + LOOKAHEAD] < entry)
         else:
             result = None
         results.append(result)
     df = df.iloc[:-LOOKAHEAD].copy()
     df['target'] = results
     return df
+
 
 def main():
     df = pd.read_csv("ohlc_data.csv")
@@ -71,6 +73,7 @@ def main():
     features = ['SMA_FAST', 'RSI', 'signal', 'close', 'target']
     df[features].to_csv("signals_for_ai_training.csv", index=False)
     print("✅ ML training dataset built with backtest: signals_for_ai_training.csv")
+
 
 if __name__ == "__main__":
     main()

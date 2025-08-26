@@ -1,10 +1,11 @@
-import MetaTrader5 as mt5
-import pandas as pd
-from datetime import datetime
 import json
+import logging
 import os
 import sys
-import logging
+from datetime import datetime
+
+import MetaTrader5 as mt5
+import pandas as pd
 
 SETTINGS_FILE = "settings.json"
 SIGNAL_FILE = "combined_signals.csv"
@@ -12,12 +13,14 @@ LOG_FILE = "live_trades_log.csv"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+
 def read_settings():
     if not os.path.exists(SETTINGS_FILE):
         logging.error("فایل settings.json یافت نشد.")
         sys.exit(1)
     with open(SETTINGS_FILE) as f:
         return json.load(f)
+
 
 def read_latest_signal():
     if not os.path.exists(SIGNAL_FILE):
@@ -33,6 +36,7 @@ def read_latest_signal():
         sys.exit(1)
     return last_signal
 
+
 def connect_mt5(login=None, password=None, server=None):
     if login and password and server:
         if not mt5.initialize(login=login, password=password, server=server):
@@ -44,6 +48,7 @@ def connect_mt5(login=None, password=None, server=None):
             sys.exit(1)
     return True
 
+
 def get_symbol_info(symbol):
     info = mt5.symbol_info(symbol)
     if info is None:
@@ -51,6 +56,7 @@ def get_symbol_info(symbol):
         mt5.shutdown()
         sys.exit(1)
     return info
+
 
 def get_tick(symbol):
     tick = mt5.symbol_info_tick(symbol)
@@ -60,12 +66,14 @@ def get_tick(symbol):
         sys.exit(1)
     return tick
 
+
 def log_trade(log):
     df = pd.DataFrame([log])
     if os.path.exists(LOG_FILE):
         df.to_csv(LOG_FILE, mode="a", header=False, index=False)
     else:
         df.to_csv(LOG_FILE, index=False)
+
 
 def has_open_trade(symbol, magic):
     positions = mt5.positions_get(symbol=symbol)
@@ -74,6 +82,7 @@ def has_open_trade(symbol, magic):
             if pos.magic == magic:
                 return True
     return False
+
 
 def execute_trade(signal, symbol, volume, sl_dist, tp_dist, deviation, magic):
     if has_open_trade(symbol, magic):
@@ -124,6 +133,7 @@ def execute_trade(signal, symbol, volume, sl_dist, tp_dist, deviation, magic):
     else:
         logging.error(f"سفارش رد شد: {result.retcode} - {result.comment}")
 
+
 def main():
     settings = read_settings()
     if not settings.get("enabled", False):
@@ -143,10 +153,9 @@ def main():
     latest_signal = read_latest_signal()
     connect_mt5(LOGIN, PASSWORD, SERVER)
     logging.info(f"اتصال برقرار شد - سیگنال: {latest_signal}")
-    execute_trade(
-        latest_signal, SYMBOL, VOLUME, SL_DISTANCE, TP_DISTANCE, DEVIATION, MAGIC
-    )
+    execute_trade(latest_signal, SYMBOL, VOLUME, SL_DISTANCE, TP_DISTANCE, DEVIATION, MAGIC)
     mt5.shutdown()
+
 
 if __name__ == "__main__":
     main()

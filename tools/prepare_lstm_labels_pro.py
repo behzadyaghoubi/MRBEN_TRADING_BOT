@@ -4,7 +4,7 @@ import pandas as pd
 df = pd.read_csv('lstm_train_data.csv')  # نام فایل را اگر فرق داشت همینجا اصلاح کن
 
 future_horizon = 6  # چند کندل جلوتر را بررسی کند (مثلاً 6 کندل 5 دقیقه‌ای = 30 دقیقه)
-threshold = 0.002   # مثلاً 0.2 درصد حرکت (0.002 برای طلا = حدود 6 دلار در قیمت 3000)
+threshold = 0.002  # مثلاً 0.2 درصد حرکت (0.002 برای طلا = حدود 6 دلار در قیمت 3000)
 
 # محاسبه بازده آینده
 df['future_return'] = (df['close'].shift(-future_horizon) - df['close']) / df['close']

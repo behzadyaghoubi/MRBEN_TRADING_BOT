@@ -15,4 +15,4 @@ python final_training_solution.py
 echo.
 echo Training completed!
 echo Press any key to exit...
-pause >nul 
+pause >nul

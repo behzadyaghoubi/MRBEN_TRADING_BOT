@@ -7,18 +7,17 @@ MRBEN Professional Trading Bot - Main Runner (PRO+ Enhanced)
 Author: MRBEN AI Trading System (2025)
 """
 
-import MetaTrader5 as mt5
-import pandas as pd
-import numpy as np
-from datetime import datetime
-import os
 import json
 import logging
-import time
+import os
 import sys
 import traceback
-from dataclasses import dataclass, asdict
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+
+import MetaTrader5 as mt5
+import pandas as pd
 
 # ---- Import your modules ----
 from ai_filter import AISignalFilter
@@ -30,6 +29,7 @@ AI_MODEL_PATH = "mrben_ai_signal_filter_xgb.joblib"
 LOG_FILE = "live_trades_log.csv"
 TRADING_LOG_FILE = "mrben_trading.log"
 MAGIC_NUMBER = 20250716
+
 
 # ---- CONFIG DATACLASS ----
 @dataclass
@@ -48,6 +48,7 @@ class TradingConfig:
     max_open_trades: int = 3
     ai_confidence_threshold: float = 0.6
 
+
 # ---- LOGGING ----
 def setup_logger(log_file: str = TRADING_LOG_FILE) -> logging.Logger:
     log_dir = "logs"
@@ -58,15 +59,17 @@ def setup_logger(log_file: str = TRADING_LOG_FILE) -> logging.Logger:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
             logging.FileHandler(log_path, encoding='utf-8'),
-            logging.StreamHandler(sys.stdout)
-        ]
+            logging.StreamHandler(sys.stdout),
+        ],
     )
     logger = logging.getLogger("MRBEN_Trading")
     return logger
 
+
 # ---- MT5 MANAGER ----
 class MT5Manager:
     """Handles MetaTrader5 connection and operations."""
+
     def __init__(self, config: TradingConfig, logger: logging.Logger):
         self.config = config
         self.logger = logger
@@ -76,9 +79,7 @@ class MT5Manager:
     def connect(self) -> bool:
         try:
             if not mt5.initialize(
-                login=self.config.login,
-                password=self.config.password,
-                server=self.config.server
+                login=self.config.login, password=self.config.password, server=self.config.server
             ):
                 self.logger.error(f"MT5 connection failed: {mt5.last_error()}")
                 return False
@@ -101,12 +102,16 @@ class MT5Manager:
             self.logger.info("MT5 disconnected.")
             self.connected = False
 
-    def get_data(self, bars: int = 200) -> Optional[pd.DataFrame]:
+    def get_data(self, bars: int = 200) -> pd.DataFrame | None:
         try:
             tf_map = {
-                "M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
-                "M30": mt5.TIMEFRAME_M30, "H1": mt5.TIMEFRAME_H1,
-                "H4": mt5.TIMEFRAME_H4, "D1": mt5.TIMEFRAME_D1,
+                "M1": mt5.TIMEFRAME_M1,
+                "M5": mt5.TIMEFRAME_M5,
+                "M15": mt5.TIMEFRAME_M15,
+                "M30": mt5.TIMEFRAME_M30,
+                "H1": mt5.TIMEFRAME_H1,
+                "H4": mt5.TIMEFRAME_H4,
+                "D1": mt5.TIMEFRAME_D1,
             }
             tf = tf_map.get(self.config.timeframe.upper(), mt5.TIMEFRAME_M15)
             rates = mt5.copy_rates_from_pos(self.config.symbol, tf, 0, bars)
@@ -126,14 +131,14 @@ class MT5Manager:
         except:
             return None
 
-    def get_open_positions(self) -> List:
+    def get_open_positions(self) -> list:
         try:
             positions = mt5.positions_get(symbol=self.config.symbol)
             return positions if positions else []
         except:
             return []
 
-    def get_current_price(self, signal: str) -> Optional[float]:
+    def get_current_price(self, signal: str) -> float | None:
         try:
             tick = mt5.symbol_info_tick(self.config.symbol)
             if not tick:
@@ -142,8 +147,9 @@ class MT5Manager:
         except:
             return None
 
+
 # ---- SIGNAL/FEATURE PROCESSING ----
-def extract_features(row: pd.Series) -> List[float]:
+def extract_features(row: pd.Series) -> list[float]:
     # مطمئن شو همین ترتیب در آموزش ML هم بوده
     return [
         row.get('SMA_FAST', 0),
@@ -151,14 +157,15 @@ def extract_features(row: pd.Series) -> List[float]:
         row.get('RSI', 0),
         row.get('MACD', 0),
         row.get('MACD_signal', 0),
-        row.get('close', 0)
+        row.get('close', 0),
     ]
 
-def load_config() -> Optional[TradingConfig]:
+
+def load_config() -> TradingConfig | None:
     if not os.path.exists(SETTINGS_FILE):
         print(f"❌ {SETTINGS_FILE} not found.")
         return None
-    with open(SETTINGS_FILE, "r") as f:
+    with open(SETTINGS_FILE) as f:
         d = json.load(f)
     # مقادیر پیش‌فرض و چک کلیدهای اجباری
     for field in ["login", "password", "server"]:
@@ -176,14 +183,25 @@ def load_config() -> Optional[TradingConfig]:
         "risk_per_trade": 0.01,
         "start_balance": 10000,
         "max_open_trades": 3,
-        "ai_confidence_threshold": 0.6
+        "ai_confidence_threshold": 0.6,
     }
     for k, v in defaults.items():
         d.setdefault(k, v)
     return TradingConfig(**d)
 
+
 # ---- TRADE EXECUTION ----
-def send_order(mt5m: MT5Manager, config: TradingConfig, signal: str, lot: float, price: float, sl: float, tp: float, confidence: float, logger: logging.Logger) -> Dict[str, Any]:
+def send_order(
+    mt5m: MT5Manager,
+    config: TradingConfig,
+    signal: str,
+    lot: float,
+    price: float,
+    sl: float,
+    tp: float,
+    confidence: float,
+    logger: logging.Logger,
+) -> dict[str, Any]:
     order_type = mt5.ORDER_TYPE_BUY if signal == "BUY" else mt5.ORDER_TYPE_SELL
     request = {
         "action": mt5.TRADE_ACTION_DEAL,
@@ -210,6 +228,7 @@ def send_order(mt5m: MT5Manager, config: TradingConfig, signal: str, lot: float,
     except Exception as e:
         logger.error(f"Order send error: {e}")
         return {"success": False, "result": None}
+
 
 # ---- MAIN LOGIC ----
 def main():
@@ -238,7 +257,7 @@ def main():
         min_lot=config.lot_min,
         max_lot=2.0,
         max_open_trades=config.max_open_trades,
-        dynamic_sensitivity=0.5
+        dynamic_sensitivity=0.5,
     )
 
     try:
@@ -249,6 +268,7 @@ def main():
             return
 
         from book_strategy import generate_book_signals  # خودت باید داشته باشی
+
         df = generate_book_signals(df)
         last = df.iloc[-1]
         features = extract_features(last)
@@ -258,7 +278,11 @@ def main():
         confidence = ai_filter.get_confidence([features])
         logger.info(f"Signal: {last['signal']} | AI: {ai_decision} | Conf: {confidence:.2f}")
 
-        if last['signal'] == "HOLD" or ai_decision == 0 or confidence < config.ai_confidence_threshold:
+        if (
+            last['signal'] == "HOLD"
+            or ai_decision == 0
+            or confidence < config.ai_confidence_threshold
+        ):
             logger.info("No trade: No valid or confident signal.")
             return
 
@@ -287,7 +311,9 @@ def main():
             tp = price - config.take_profit_pips * mt5m.point
 
         # ----- Execute Trade -----
-        trade_result = send_order(mt5m, config, last['signal'], lot, price, sl, tp, confidence, logger)
+        trade_result = send_order(
+            mt5m, config, last['signal'], lot, price, sl, tp, confidence, logger
+        )
 
         # ----- Log Trade -----
         log_dict = {
@@ -302,7 +328,7 @@ def main():
             "ai_decision": int(ai_decision),
             "ai_confidence": confidence,
             "result_code": trade_result["result"].retcode if trade_result["result"] else -1,
-            "comment": trade_result["result"].comment if trade_result["result"] else "FAILED"
+            "comment": trade_result["result"].comment if trade_result["result"] else "FAILED",
         }
         try:
             df_log = pd.DataFrame([log_dict])
@@ -325,6 +351,7 @@ def main():
     finally:
         mt5m.shutdown()
         logger.info("==== MRBEN PRO Trading Bot Shutdown ====")
+
 
 if __name__ == "__main__":
     main()

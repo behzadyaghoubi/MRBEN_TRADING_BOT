@@ -1,13 +1,25 @@
-import os, json, threading, time
+import json
+import os
+import threading
+import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
+
 
 class EventLogger:
     """
     JSONL event logger (thread-safe).
     Writes one JSON object per line to `path`.
     """
-    def __init__(self, path: str, run_id: str, symbol: str, flush_interval: float = 0.5, max_size_mb: int = 10):
+
+    def __init__(
+        self,
+        path: str,
+        run_id: str,
+        symbol: str,
+        flush_interval: float = 0.5,
+        max_size_mb: int = 10,
+    ):
         self.path = path
         self.run_id = run_id
         self.symbol = symbol
@@ -20,7 +32,7 @@ class EventLogger:
         self._t.start()
 
     def emit(self, event: str, **fields: Any):
-        rec: Dict[str, Any] = {
+        rec: dict[str, Any] = {
             "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
             "event": event,
             "run_id": self.run_id,
@@ -49,7 +61,7 @@ class EventLogger:
                 self._cleanup_old_backups()
         except Exception:
             pass  # Don't fail if rotation fails
-    
+
     def _cleanup_old_backups(self):
         """Keep only last 5 backup files."""
         try:
@@ -61,17 +73,17 @@ class EventLogger:
                 os.remove(os.path.join(dir_path, old_file))
         except Exception:
             pass  # Don't fail if cleanup fails
-    
+
     def flush(self):
         buf = None
         with self._lock:
             if not self._buffer:
                 return
             buf, self._buffer = self._buffer, []
-        
+
         # Rotate if needed before writing
         self._rotate_if_needed()
-        
+
         with open(self.path, "a", encoding="utf-8") as f:
             f.write("\n".join(buf) + "\n")
 

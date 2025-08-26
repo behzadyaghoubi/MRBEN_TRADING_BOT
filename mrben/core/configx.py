@@ -5,14 +5,16 @@ Pydantic models with environment variable overrides
 """
 
 from __future__ import annotations
-import os
-import yaml
+
 import json
-from typing import Dict, Literal
+import os
+from typing import Literal
+
+import yaml
 from pydantic import BaseModel
 
-
 # ==== Strategy Configuration ====
+
 
 class StrategyLookbackCfg(BaseModel):
     fast: int = 20
@@ -47,10 +49,11 @@ class StrategyCfg(BaseModel):
 
 # ==== Confidence Configuration ====
 
+
 class ConfidenceDynCfg(BaseModel):
-    regime: Dict[str, float] = {"low_vol": 1.10, "normal": 1.00, "high_vol": 0.85}
-    session: Dict[str, float] = {"asia": 0.90, "london": 1.05, "ny": 1.00}
-    drawdown: Dict[str, float] = {"calm": 1.00, "mild_dd": 0.90, "deep_dd": 0.80}
+    regime: dict[str, float] = {"low_vol": 1.10, "normal": 1.00, "high_vol": 0.85}
+    session: dict[str, float] = {"asia": 0.90, "london": 1.05, "ny": 1.00}
+    drawdown: dict[str, float] = {"calm": 1.00, "mild_dd": 0.90, "deep_dd": 0.80}
 
 
 class ConfidenceThrCfg(BaseModel):
@@ -66,12 +69,14 @@ class ConfidenceCfg(BaseModel):
 
 # ==== ATR Configuration ====
 
+
 class ATRCfg(BaseModel):
     sl_mult: float = 1.6
-    tp_r: Dict[str, float] = {"tp1": 0.8, "tp2": 1.5}
+    tp_r: dict[str, float] = {"tp1": 0.8, "tp2": 1.5}
 
 
 # ==== Risk Management Configuration ====
+
 
 class RiskGatesCfg(BaseModel):
     spread_max_pts: int = 180
@@ -90,11 +95,13 @@ class RiskManagementCfg(BaseModel):
 
 # ==== Session Configuration ====
 
+
 class SessionCfg(BaseModel):
     enabled: bool = True
 
 
 # ==== Position Management Configuration ====
+
 
 class PositionManagementCfg(BaseModel):
     tp_split_enabled: bool = True
@@ -105,6 +112,7 @@ class PositionManagementCfg(BaseModel):
 
 # ==== Order Management Configuration ====
 
+
 class OrderManagementCfg(BaseModel):
     default_filling_mode: str = "ioc"
     max_slippage_pts: int = 50
@@ -114,12 +122,14 @@ class OrderManagementCfg(BaseModel):
 
 # ==== Metrics Configuration ====
 
+
 class MetricsCfg(BaseModel):
     port: int = 8765
     enabled: bool = True
 
 
 # ==== Emergency Stop Configuration ====
+
 
 class EmergencyStopCfg(BaseModel):
     enabled: bool = True
@@ -133,11 +143,13 @@ class EmergencyStopCfg(BaseModel):
 
 # ==== Logging Configuration ====
 
+
 class LoggingCfg(BaseModel):
     level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
 
 # ==== Root Configuration ====
+
 
 class RootCfg(BaseModel):
     strategy: StrategyCfg
@@ -153,6 +165,7 @@ class RootCfg(BaseModel):
 
 
 # ==== ENV Override helper ====
+
 
 def _smart_cast(val: str):
     """Smart cast string values to appropriate types"""
@@ -174,7 +187,7 @@ def apply_env_overrides(cfg_dict: dict, prefix: str = "MRBEN__") -> dict:
     for k, v in os.environ.items():
         if not k.startswith(prefix):
             continue
-        path = k[len(prefix):].lower().split("__")
+        path = k[len(prefix) :].lower().split("__")
         ref = cfg_dict
         for p in path[:-1]:
             ref = ref.setdefault(p, {})
@@ -184,9 +197,10 @@ def apply_env_overrides(cfg_dict: dict, prefix: str = "MRBEN__") -> dict:
 
 # ==== Loader ====
 
+
 def load_config(path: str = "config/config.yaml", env_prefix: str = "MRBEN__") -> RootCfg:
     """Load configuration from YAML file with environment variable overrides"""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
     merged = apply_env_overrides(raw, env_prefix)
     cfg = RootCfg.model_validate(merged)

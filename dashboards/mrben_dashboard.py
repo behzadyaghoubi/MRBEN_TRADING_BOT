@@ -1,5 +1,5 @@
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # مسیر لاگ معاملات (آخرین فایل بک‌تست مدیریت ریسک)
 csv_file = "mrben_dynamic_risk_protect_trades.csv"
@@ -14,7 +14,9 @@ win_trades = df[(df['action'].str.contains('CLOSE')) & (df['capital'].diff() > 0
 loss_trades = num_trades - win_trades
 win_rate = win_trades / num_trades * 100 if num_trades > 0 else 0
 max_drawdown = (df['capital'].cummax() - df['capital']).max()
-max_drawdown_pct = (max_drawdown / df['capital'].cummax().max()) * 100 if df['capital'].cummax().max() > 0 else 0
+max_drawdown_pct = (
+    (max_drawdown / df['capital'].cummax().max()) * 100 if df['capital'].cummax().max() > 0 else 0
+)
 
 print(f"سرمایه اولیه: {start_capital:.2f}")
 print(f"سرمایه نهایی: {end_capital:.2f}")

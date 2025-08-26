@@ -2,7 +2,9 @@
 
 import pandas as pd
 from book_strategy import generate_book_signals
+
 from rl_predictor import load_trained_agent, predict_next_signal
+
 
 def generate_filtered_signals(df, threshold=0.7, agent_path="trained_q_table.npy", epsilon=0.01):
     """
@@ -29,7 +31,7 @@ def generate_filtered_signals(df, threshold=0.7, agent_path="trained_q_table.npy
         # Only evaluate RL filter for actionable signals (BUY/SELL)
         if signal in ["BUY", "SELL"] and agent is not None:
             try:
-                temp_df = df.iloc[:i+1].copy()
+                temp_df = df.iloc[: i + 1].copy()
                 score_signal = predict_next_signal(agent, temp_df)
                 # Accept only if RL agent agrees, else HOLD
                 if score_signal == signal:
@@ -44,6 +46,7 @@ def generate_filtered_signals(df, threshold=0.7, agent_path="trained_q_table.npy
 
     df["filtered_signal"] = filtered_signals
     return df
+
 
 if __name__ == "__main__":
     # Test: Run filtered signal generator on sample data

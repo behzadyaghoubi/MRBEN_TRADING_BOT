@@ -1,5 +1,3 @@
-import pandas as pd
-
 def detect_pin_bar(df, n=5):
     if len(df) < n:
         return "NO PA"
@@ -16,6 +14,7 @@ def detect_pin_bar(df, n=5):
             return "BULLISH_PIN"
     return "NO PA"
 
+
 def detect_engulfing(df, n=5):
     if len(df) < n + 1:
         return "NO PA"
@@ -28,6 +27,7 @@ def detect_engulfing(df, n=5):
         if curr['open'] > prev['close'] and curr['close'] < prev['open']:
             return "BEARISH_ENGULF"
     return "NO PA"
+
 
 def price_action_signal(df):
     pin = detect_pin_bar(df)

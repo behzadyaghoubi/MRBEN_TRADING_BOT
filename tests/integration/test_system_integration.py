@@ -2,25 +2,24 @@
 Integration tests for MR BEN Trading System.
 """
 
-import unittest
-from unittest.mock import Mock, patch, MagicMock
-import sys
-import os
-import tempfile
 import json
-from pathlib import Path
-import pandas as pd
+import os
+import sys
+import tempfile
+import unittest
 from datetime import datetime
+from unittest.mock import Mock, patch
+
+import pandas as pd
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
-from core.trader import MT5LiveTrader
-from config.settings import MT5Config
-from data.manager import MT5DataManager
 from ai.system import MRBENAdvancedAISystem
-from risk.manager import EnhancedRiskManager
+from config.settings import MT5Config
+from core.trader import MT5LiveTrader
 from execution.executor import EnhancedTradeExecutor
+from risk.manager import EnhancedRiskManager
 
 
 class TestSystemIntegration(unittest.TestCase):
@@ -31,16 +30,10 @@ class TestSystemIntegration(unittest.TestCase):
         # Create temporary config file
         self.temp_dir = tempfile.mkdtemp()
         self.config_file = os.path.join(self.temp_dir, 'config.json')
-        
+
         config_data = {
-            "credentials": {
-                "login": 12345,
-                "password": "test_password",
-                "server": "TestServer"
-            },
-            "flags": {
-                "demo_mode": True
-            },
+            "credentials": {"login": 12345, "password": "test_password", "server": "TestServer"},
+            "flags": {"demo_mode": True},
             "trading": {
                 "symbol": "XAUUSD.PRO",
                 "timeframe": 15,
@@ -54,7 +47,7 @@ class TestSystemIntegration(unittest.TestCase):
                 "retry_delay": 5,
                 "consecutive_signals_required": 1,
                 "lstm_timesteps": 50,
-                "cooldown_seconds": 180
+                "cooldown_seconds": 180,
             },
             "risk": {
                 "base_risk": 0.01,
@@ -64,36 +57,31 @@ class TestSystemIntegration(unittest.TestCase):
                 "max_daily_loss": 0.02,
                 "max_trades_per_day": 10,
                 "sl_atr_multiplier": 1.6,
-                "tp_atr_multiplier": 3.0
+                "tp_atr_multiplier": 3.0,
             },
             "logging": {
                 "enabled": True,
                 "level": "INFO",
                 "log_file": "logs/test.log",
-                "trade_log_path": "data/test_trades.csv"
+                "trade_log_path": "data/test_trades.csv",
             },
-            "session": {
-                "timezone": "Etc/UTC"
-            },
-            "advanced": {
-                "swing_lookback": 12,
-                "dynamic_spread_atr_frac": 0.10
-            },
+            "session": {"timezone": "Etc/UTC"},
+            "advanced": {"swing_lookback": 12, "dynamic_spread_atr_frac": 0.10},
             "execution": {
                 "spread_eps": 0.02,
                 "use_spread_ma": True,
                 "spread_ma_window": 5,
-                "spread_hysteresis_factor": 1.05
+                "spread_hysteresis_factor": 1.05,
             },
             "tp_policy": {
                 "split": True,
                 "tp1_r": 0.8,
                 "tp2_r": 1.5,
                 "tp1_share": 0.5,
-                "breakeven_after_tp1": True
-            }
+                "breakeven_after_tp1": True,
+            },
         }
-        
+
         with open(self.config_file, 'w') as f:
             json.dump(config_data, f, indent=2)
 
@@ -101,6 +89,7 @@ class TestSystemIntegration(unittest.TestCase):
         """Clean up test fixtures."""
         # Remove temporary files
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_component_initialization_integration(self):
@@ -134,45 +123,41 @@ class TestSystemIntegration(unittest.TestCase):
                 mock_config_class.return_value.MAX_TRADES_PER_DAY = 10
                 mock_config_class.return_value.SESSION_TZ = "Etc/UTC"
                 mock_config_class.return_value.config_data = {
-                    "risk": {
-                        "sl_atr_multiplier": 1.6,
-                        "tp_atr_multiplier": 3.0
-                    },
-                    "advanced": {
-                        "swing_lookback": 12,
-                        "dynamic_spread_atr_frac": 0.10
-                    },
+                    "risk": {"sl_atr_multiplier": 1.6, "tp_atr_multiplier": 3.0},
+                    "advanced": {"swing_lookback": 12, "dynamic_spread_atr_frac": 0.10},
                     "execution": {
                         "spread_eps": 0.02,
                         "use_spread_ma": True,
                         "spread_ma_window": 5,
-                        "spread_hysteresis_factor": 1.05
+                        "spread_hysteresis_factor": 1.05,
                     },
                     "tp_policy": {
                         "split": True,
                         "tp1_r": 0.8,
                         "tp2_r": 1.5,
                         "tp1_share": 0.5,
-                        "breakeven_after_tp1": True
-                    }
+                        "breakeven_after_tp1": True,
+                    },
                 }
-                
+
                 # Mock all external dependencies
-                with patch.multiple('src.core.trader',
-                                  MT5Config=mock_config_class,
-                                  MT5DataManager=Mock(),
-                                  MRBENAdvancedAISystem=Mock(),
-                                  EnhancedRiskManager=Mock(),
-                                  EnhancedTradeExecutor=Mock(),
-                                  _get_open_positions=Mock(return_value={}),
-                                  _prune_trailing_registry=Mock(return_value=0),
-                                  _count_open_positions=Mock(return_value=0),
-                                  log_memory_usage=Mock(),
-                                  cleanup_memory=Mock()):
-                    
+                with patch.multiple(
+                    'src.core.trader',
+                    MT5Config=mock_config_class,
+                    MT5DataManager=Mock(),
+                    MRBENAdvancedAISystem=Mock(),
+                    EnhancedRiskManager=Mock(),
+                    EnhancedTradeExecutor=Mock(),
+                    _get_open_positions=Mock(return_value={}),
+                    _prune_trailing_registry=Mock(return_value=0),
+                    _count_open_positions=Mock(return_value=0),
+                    log_memory_usage=Mock(),
+                    cleanup_memory=Mock(),
+                ):
+
                     # Test trader initialization
                     trader = MT5LiveTrader()
-                    
+
                     # Verify all components are initialized
                     self.assertIsNotNone(trader.config)
                     self.assertIsNotNone(trader.risk_manager)
@@ -188,51 +173,53 @@ class TestSystemIntegration(unittest.TestCase):
         mock_ai_system = Mock()
         mock_risk_manager = Mock()
         mock_trade_executor = Mock()
-        
+
         # Mock data flow
-        mock_data = pd.DataFrame({
-            'time': pd.date_range('2024-01-01', periods=100, freq='H'),
-            'open': range(100),
-            'high': range(100),
-            'low': range(100),
-            'close': range(100),
-            'volume': [100] * 100
-        })
-        
+        mock_data = pd.DataFrame(
+            {
+                'time': pd.date_range('2024-01-01', periods=100, freq='H'),
+                'open': range(100),
+                'high': range(100),
+                'low': range(100),
+                'close': range(100),
+                'volume': [100] * 100,
+            }
+        )
+
         mock_data_manager.get_latest_data.return_value = mock_data
         mock_data_manager.get_current_tick.return_value = {
             'time': datetime.now(),
             'bid': 2000.0,
             'ask': 2000.1,
-            'volume': 100
+            'volume': 100,
         }
-        
+
         mock_ai_system.generate_ensemble_signal.return_value = {
             'signal': 1,
             'confidence': 0.8,
             'score': 0.6,
-            'source': 'Test AI'
+            'source': 'Test AI',
         }
-        
+
         mock_risk_manager.calculate_dynamic_sl_tp.return_value = (1990.0, 2010.0)
         mock_risk_manager.calculate_lot_size.return_value = 0.1
-        
+
         # Test data flow
         # 1. Get market data
         data = mock_data_manager.get_latest_data(500)
         self.assertIsNotNone(data)
         self.assertEqual(len(data), 100)
-        
+
         # 2. Generate AI signal
         signal = mock_ai_system.generate_ensemble_signal({})
         self.assertEqual(signal['signal'], 1)
         self.assertEqual(signal['confidence'], 0.8)
-        
+
         # 3. Calculate risk parameters
         sl, tp = mock_risk_manager.calculate_dynamic_sl_tp("XAUUSD.PRO", 2000.0, "BUY")
         self.assertEqual(sl, 1990.0)
         self.assertEqual(tp, 2010.0)
-        
+
         # 4. Calculate position size
         lot_size = mock_risk_manager.calculate_lot_size(10000.0, 0.01, 10.0, "XAUUSD.PRO")
         self.assertEqual(lot_size, 0.1)
@@ -241,20 +228,16 @@ class TestSystemIntegration(unittest.TestCase):
         """Test risk management integration."""
         # Create risk manager
         risk_manager = EnhancedRiskManager(
-            base_risk=0.01,
-            min_lot=0.01,
-            max_lot=2.0,
-            max_open_trades=3,
-            max_drawdown=0.10
+            base_risk=0.01, min_lot=0.01, max_lot=2.0, max_open_trades=3, max_drawdown=0.10
         )
-        
+
         # Test risk calculations
         # Mock ATR
         with patch.object(risk_manager, 'get_atr', return_value=2.0):
             sl, tp = risk_manager.calculate_dynamic_sl_tp("XAUUSD.PRO", 2000.0, "BUY")
             self.assertLess(sl, 2000.0)
             self.assertGreater(tp, 2000.0)
-        
+
         # Test trade eligibility
         self.assertTrue(risk_manager.can_open_new_trade(10000.0, 10000.0, 0))
         self.assertFalse(risk_manager.can_open_new_trade(10000.0, 10000.0, 3))
@@ -264,22 +247,34 @@ class TestSystemIntegration(unittest.TestCase):
         """Test AI system integration."""
         # Create AI system
         ai_system = MRBENAdvancedAISystem()
-        
+
         # Test meta-feature generation
-        df = pd.DataFrame({
-            'time': pd.date_range('2024-01-01', periods=5, freq='H'),
-            'close': [2000.0, 2001.0, 2002.0, 2003.0, 2004.0],
-            'high': [2000.5, 2001.5, 2002.5, 2003.5, 2004.5],
-            'low': [1999.5, 2000.5, 2001.5, 2002.5, 2003.5]
-        })
-        
+        df = pd.DataFrame(
+            {
+                'time': pd.date_range('2024-01-01', periods=5, freq='H'),
+                'close': [2000.0, 2001.0, 2002.0, 2003.0, 2004.0],
+                'high': [2000.5, 2001.5, 2002.5, 2003.5, 2004.5],
+                'low': [1999.5, 2000.5, 2001.5, 2002.5, 2003.5],
+            }
+        )
+
         result_df = ai_system.generate_meta_features(df)
-        
+
         # Verify features were added
-        expected_features = ['hour', 'day_of_week', 'session', 'session_encoded', 
-                           'rsi', 'macd', 'macd_signal', 'macd_hist', 'atr', 
-                           'sma_20', 'sma_50']
-        
+        expected_features = [
+            'hour',
+            'day_of_week',
+            'session',
+            'session_encoded',
+            'rsi',
+            'macd',
+            'macd_signal',
+            'macd_hist',
+            'atr',
+            'sma_20',
+            'sma_50',
+        ]
+
         for feature in expected_features:
             self.assertIn(feature, result_df.columns)
 
@@ -288,7 +283,7 @@ class TestSystemIntegration(unittest.TestCase):
         # Create risk manager and trade executor
         risk_manager = EnhancedRiskManager()
         trade_executor = EnhancedTradeExecutor(risk_manager)
-        
+
         # Test account info retrieval
         account_info = trade_executor.get_account_info()
         self.assertIsInstance(account_info, dict)
@@ -325,26 +320,28 @@ class TestSystemIntegration(unittest.TestCase):
                 mock_config_class.return_value.MAX_TRADES_PER_DAY = 10
                 mock_config_class.return_value.SESSION_TZ = "Etc/UTC"
                 mock_config_class.return_value.config_data = {}
-                
+
                 # Mock all dependencies
-                with patch.multiple('src.core.trader',
-                                  MT5Config=mock_config_class,
-                                  MT5DataManager=Mock(),
-                                  MRBENAdvancedAISystem=Mock(),
-                                  EnhancedRiskManager=Mock(),
-                                  EnhancedTradeExecutor=Mock(),
-                                  _get_open_positions=Mock(return_value={}),
-                                  _prune_trailing_registry=Mock(return_value=0),
-                                  _count_open_positions=Mock(return_value=0),
-                                  log_memory_usage=Mock(),
-                                  cleanup_memory=Mock()):
-                    
+                with patch.multiple(
+                    'src.core.trader',
+                    MT5Config=mock_config_class,
+                    MT5DataManager=Mock(),
+                    MRBENAdvancedAISystem=Mock(),
+                    EnhancedRiskManager=Mock(),
+                    EnhancedTradeExecutor=Mock(),
+                    _get_open_positions=Mock(return_value={}),
+                    _prune_trailing_registry=Mock(return_value=0),
+                    _count_open_positions=Mock(return_value=0),
+                    log_memory_usage=Mock(),
+                    cleanup_memory=Mock(),
+                ):
+
                     # Should handle initialization gracefully
                     trader = MT5LiveTrader()
-                    
+
                     # Test system validation
                     self.assertTrue(trader._validate_system())
-                    
+
                     # Test preflight check
                     with patch('os.path.exists', return_value=True):
                         with patch('os.makedirs'):
@@ -354,7 +351,7 @@ class TestSystemIntegration(unittest.TestCase):
         """Test configuration integration across components."""
         # Test that configuration is properly propagated
         config = MT5Config()
-        
+
         # Verify configuration values
         self.assertEqual(config.SYMBOL, "XAUUSD.PRO")
         self.assertEqual(config.TIMEFRAME_MIN, 15)
@@ -367,15 +364,15 @@ class TestSystemIntegration(unittest.TestCase):
     def test_memory_management_integration(self):
         """Test memory management integration."""
         # Test that memory management works across components
-        from src.utils.memory import log_memory_usage, cleanup_memory
-        
+        from src.utils.memory import cleanup_memory, log_memory_usage
+
         # Mock logger
         mock_logger = Mock()
-        
+
         # Test memory logging
         log_memory_usage(mock_logger, "Test memory check")
         mock_logger.info.assert_called()
-        
+
         # Test memory cleanup
         cleanup_memory()
         # Should not raise any exceptions
@@ -384,37 +381,37 @@ class TestSystemIntegration(unittest.TestCase):
         """Test logging integration across components."""
         # Test that logging is properly configured
         import logging
-        
+
         # Create test logger
         test_logger = logging.getLogger("TestLogger")
         test_logger.setLevel(logging.INFO)
-        
+
         # Test logging functionality
         test_logger.info("Test log message")
         test_logger.warning("Test warning")
         test_logger.error("Test error")
-        
+
         # Should not raise any exceptions
 
     def test_performance_metrics_integration(self):
         """Test performance metrics integration."""
         from src.core.metrics import PerformanceMetrics
-        
+
         # Create metrics
         metrics = PerformanceMetrics()
-        
+
         # Test metrics recording
         metrics.record_cycle(0.1)
         metrics.record_trade()
         metrics.record_error()
-        
+
         # Test stats retrieval
         stats = metrics.get_stats()
         self.assertIn('uptime_seconds', stats)
         self.assertIn('cycle_count', stats)
         self.assertIn('total_trades', stats)
         self.assertIn('error_rate', stats)
-        
+
         # Test reset functionality
         metrics.reset()
         stats_after_reset = metrics.get_stats()

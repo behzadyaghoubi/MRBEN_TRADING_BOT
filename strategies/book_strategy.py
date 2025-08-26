@@ -1,10 +1,12 @@
-import pandas as pd
-import numpy as np
-import talib
 import logging
-from typing import Optional, Dict, Any
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import talib
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
 
 def detect_price_action(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -16,14 +18,15 @@ def detect_price_action(df: pd.DataFrame) -> pd.DataFrame:
     upper_wick = df['high'] - df[['open', 'close']].max(axis=1)
     lower_wick = df[['open', 'close']].min(axis=1) - df['low']
     pinbar = (
-        (body < candle_range * 0.3) &
-        (upper_wick > candle_range * 0.4) &
-        (lower_wick > candle_range * 0.4)
+        (body < candle_range * 0.3)
+        & (upper_wick > candle_range * 0.4)
+        & (lower_wick > candle_range * 0.4)
     )
     df['pinbar'] = pinbar.astype(int)
     engulfing = talib.CDLENGULFING(df['open'], df['high'], df['low'], df['close'])
     df['engulfing'] = np.where(engulfing > 0, 1, np.where(engulfing < 0, -1, 0))
     return df
+
 
 def generate_book_signals(
     df: pd.DataFrame,
@@ -36,7 +39,7 @@ def generate_book_signals(
     macd_slow: int = 26,
     macd_signal: int = 9,
     min_strength: int = 2,
-    custom_thresholds: Optional[Dict[str, Any]] = None
+    custom_thresholds: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """
     Generate trading signals for XAUUSD M15 using SMA, RSI, MACD, and price action.
@@ -48,7 +51,9 @@ def generate_book_signals(
     df['SMA_FAST'] = talib.SMA(df['close'], timeperiod=sma_fast)
     df['SMA_SLOW'] = talib.SMA(df['close'], timeperiod=sma_slow)
     df['RSI'] = talib.RSI(df['close'], timeperiod=rsi_period)
-    macd, macd_sig, macd_hist = talib.MACD(df['close'], fastperiod=macd_fast, slowperiod=macd_slow, signalperiod=macd_signal)
+    macd, macd_sig, macd_hist = talib.MACD(
+        df['close'], fastperiod=macd_fast, slowperiod=macd_slow, signalperiod=macd_signal
+    )
     df['MACD'] = macd
     df['MACD_signal'] = macd_sig
     df['MACD_hist'] = macd_hist
@@ -62,25 +67,25 @@ def generate_book_signals(
     prev_rsi = df['RSI'].shift(1)
 
     buy_cond = (
-        (df['SMA_FAST'] > df['SMA_SLOW']) &
-        (prev_sma_fast <= prev_sma_slow) &
-        (df['RSI'] < rsi_buy) &
-        (df['RSI'] > prev_rsi) &
-        ((df['pinbar'] == 1) | (df['engulfing'] == 1))
+        (df['SMA_FAST'] > df['SMA_SLOW'])
+        & (prev_sma_fast <= prev_sma_slow)
+        & (df['RSI'] < rsi_buy)
+        & (df['RSI'] > prev_rsi)
+        & ((df['pinbar'] == 1) | (df['engulfing'] == 1))
     )
     sell_cond = (
-        (df['SMA_FAST'] < df['SMA_SLOW']) &
-        (prev_sma_fast >= prev_sma_slow) &
-        (df['RSI'] > rsi_sell) &
-        (df['RSI'] < prev_rsi) &
-        ((df['pinbar'] == 1) | (df['engulfing'] == -1))
+        (df['SMA_FAST'] < df['SMA_SLOW'])
+        & (prev_sma_fast >= prev_sma_slow)
+        & (df['RSI'] > rsi_sell)
+        & (df['RSI'] < prev_rsi)
+        & ((df['pinbar'] == 1) | (df['engulfing'] == -1))
     )
 
     strength = (
-        (abs(df['SMA_FAST'] - df['SMA_SLOW']) > 0.1 * df['close']).astype(int) +
-        (abs(df['RSI'] - 50) > rsi_dist_thr).astype(int) +
-        (abs(df['MACD_hist']) > macd_hist_thr).astype(int) +
-        ((df['pinbar'] == 1) | (abs(df['engulfing']) == 1)).astype(int)
+        (abs(df['SMA_FAST'] - df['SMA_SLOW']) > 0.1 * df['close']).astype(int)
+        + (abs(df['RSI'] - 50) > rsi_dist_thr).astype(int)
+        + (abs(df['MACD_hist']) > macd_hist_thr).astype(int)
+        + ((df['pinbar'] == 1) | (abs(df['engulfing']) == 1)).astype(int)
     )
 
     df['signal'] = np.where(buy_cond, 'BUY', np.where(sell_cond, 'SELL', 'HOLD'))
@@ -91,7 +96,8 @@ def generate_book_signals(
 
     return df
 
-def get_latest_signal(df: pd.DataFrame, **kwargs) -> Dict[str, Any]:
+
+def get_latest_signal(df: pd.DataFrame, **kwargs) -> dict[str, Any]:
     """
     Get the latest signal for live trading (returns dict).
     """
@@ -99,19 +105,16 @@ def get_latest_signal(df: pd.DataFrame, **kwargs) -> Dict[str, Any]:
     if len(df) == 0:
         return {"signal": "HOLD", "strength": 0}
     last = df.iloc[-1]
-    return {
-        "signal": last["signal"],
-        "strength": last["signal_strength"],
-        "row": last.to_dict()
-    }
+    return {"signal": last["signal"], "strength": last["signal_strength"], "row": last.to_dict()}
+
 
 def plot_signals(df: pd.DataFrame, filename: str = 'signals_plot.png'):
     """
     Plot OHLC and signals for visual inspection.
     Requires matplotlib.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
 
     df = df.copy()
     df['time'] = pd.to_datetime(df['time'])
@@ -122,8 +125,24 @@ def plot_signals(df: pd.DataFrame, filename: str = 'signals_plot.png'):
 
     buy_signals = df[df['signal'] == 'BUY']
     sell_signals = df[df['signal'] == 'SELL']
-    ax.scatter(buy_signals['time'], buy_signals['close'], marker='^', color='green', label='BUY', s=60, zorder=5)
-    ax.scatter(sell_signals['time'], sell_signals['close'], marker='v', color='red', label='SELL', s=60, zorder=5)
+    ax.scatter(
+        buy_signals['time'],
+        buy_signals['close'],
+        marker='^',
+        color='green',
+        label='BUY',
+        s=60,
+        zorder=5,
+    )
+    ax.scatter(
+        sell_signals['time'],
+        sell_signals['close'],
+        marker='v',
+        color='red',
+        label='SELL',
+        s=60,
+        zorder=5,
+    )
 
     ax.set_title('Book Strategy Signals')
     ax.set_xlabel('Time')
@@ -136,11 +155,27 @@ def plot_signals(df: pd.DataFrame, filename: str = 'signals_plot.png'):
     plt.close()
     print(f"Plot saved to {filename}")
 
+
 if __name__ == "__main__":
     try:
         df = pd.read_csv("ohlc_data.csv")
         df = generate_book_signals(df)
-        print(df.tail(5)[["time", "open", "close", "SMA_FAST", "SMA_SLOW", "RSI", "pinbar", "engulfing", "signal", "signal_strength"]])
+        print(
+            df.tail(5)[
+                [
+                    "time",
+                    "open",
+                    "close",
+                    "SMA_FAST",
+                    "SMA_SLOW",
+                    "RSI",
+                    "pinbar",
+                    "engulfing",
+                    "signal",
+                    "signal_strength",
+                ]
+            ]
+        )
         df.to_csv("signals_book_strategy.csv", index=False)
         print("✅ Signals generated and saved successfully.")
         print("Latest signal:", get_latest_signal(df))

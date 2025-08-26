@@ -1,10 +1,11 @@
 # train_ai_model.py
-import pandas as pd
-from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, roc_auc_score
-import joblib
 import os
+
+import joblib
+import pandas as pd
+from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
 
 TRAIN_FILE = "signals_for_ai_training.csv"      # دیتای بک‌تست
 REAL_FILE = "live_trades_log.csv"               # دیتای واقعی (اگر وجود داشته باشد)

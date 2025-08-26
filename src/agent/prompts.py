@@ -3,9 +3,7 @@ Structured prompts for MR BEN AI Agent system.
 Defines prompts for Supervisor and Risk Officer roles with JSON schema outputs.
 """
 
-from typing import Dict, Any
-from .schemas import SupervisorDecision, RiskOfficerDecision, DecisionContext, ToolProposal
-
+from typing import Any
 
 # ============================================================================
 # SUPERVISOR PROMPT
@@ -75,7 +73,7 @@ SUPERVISOR_JSON_SCHEMA = {
     "properties": {
         "decision_id": {
             "type": "string",
-            "description": "Unique decision identifier (UUID format)"
+            "description": "Unique decision identifier (UUID format)",
         },
         "context": {
             "type": "object",
@@ -83,36 +81,31 @@ SUPERVISOR_JSON_SCHEMA = {
                 "timestamp": {
                     "type": "string",
                     "format": "date-time",
-                    "description": "Decision timestamp in ISO format"
+                    "description": "Decision timestamp in ISO format",
                 },
-                "user_id": {
-                    "type": "string",
-                    "description": "User making the decision"
-                },
-                "session_id": {
-                    "type": "string",
-                    "description": "Trading session identifier"
-                },
+                "user_id": {"type": "string", "description": "User making the decision"},
+                "session_id": {"type": "string", "description": "Trading session identifier"},
                 "trading_mode": {
                     "type": "string",
                     "enum": ["observe", "paper", "live"],
-                    "description": "Current trading mode"
+                    "description": "Current trading mode",
                 },
-                "market_conditions": {
-                    "type": "object",
-                    "description": "Current market conditions"
-                },
-                "risk_metrics": {
-                    "type": "object",
-                    "description": "Current risk metrics"
-                },
+                "market_conditions": {"type": "object", "description": "Current market conditions"},
+                "risk_metrics": {"type": "object", "description": "Current risk metrics"},
                 "recent_trades": {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "List of recent trades"
-                }
+                    "description": "List of recent trades",
+                },
             },
-            "required": ["timestamp", "session_id", "trading_mode", "market_conditions", "risk_metrics", "recent_trades"]
+            "required": [
+                "timestamp",
+                "session_id",
+                "trading_mode",
+                "market_conditions",
+                "risk_metrics",
+                "recent_trades",
+            ],
         },
         "proposal": {
             "type": "object",
@@ -123,62 +116,73 @@ SUPERVISOR_JSON_SCHEMA = {
                 "risk_assessment": {"type": "string"},
                 "expected_outcome": {"type": "string"},
                 "urgency": {"type": "string"},
-                "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+                "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
             },
-            "required": ["tool_name", "input_data", "reasoning", "risk_assessment", "expected_outcome", "urgency", "confidence"]
+            "required": [
+                "tool_name",
+                "input_data",
+                "reasoning",
+                "risk_assessment",
+                "expected_outcome",
+                "urgency",
+                "confidence",
+            ],
         },
         "supervisor_analysis": {
             "type": "string",
-            "description": "Detailed analysis of the proposal"
+            "description": "Detailed analysis of the proposal",
         },
         "recommendation": {
             "type": "string",
             "enum": ["approve", "approve_with_constraints", "reject", "request_more_info"],
-            "description": "Supervisor recommendation"
+            "description": "Supervisor recommendation",
         },
         "confidence": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Supervisor confidence level (0.0 to 1.0)"
+            "description": "Supervisor confidence level (0.0 to 1.0)",
         },
         "risk_level": {
             "type": "string",
             "enum": ["low", "medium", "high", "critical"],
-            "description": "Assessed risk level"
+            "description": "Assessed risk level",
         },
         "constraints": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Recommended constraints if approved"
+            "description": "Recommended constraints if approved",
         },
         "adj_conf": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Regime-adjusted confidence level"
+            "description": "Regime-adjusted confidence level",
         },
         "threshold": {
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Regime-aware threshold applied"
+            "description": "Regime-aware threshold applied",
         },
         "allow_trade": {
             "type": "boolean",
-            "description": "Whether trade is allowed by regime analysis"
+            "description": "Whether trade is allowed by regime analysis",
         },
-        "regime_notes": {
-            "type": "string",
-            "description": "Regime-related decision notes"
-        },
-        "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Decision timestamp"
-        }
+        "regime_notes": {"type": "string", "description": "Regime-related decision notes"},
+        "timestamp": {"type": "string", "format": "date-time", "description": "Decision timestamp"},
     },
-    "required": ["decision_id", "context", "proposal", "supervisor_analysis", "recommendation", "confidence", "risk_level", "constraints", "timestamp"]
+    "required": [
+        "decision_id",
+        "context",
+        "proposal",
+        "supervisor_analysis",
+        "recommendation",
+        "confidence",
+        "risk_level",
+        "constraints",
+        "timestamp",
+    ],
 }
 
 
@@ -245,46 +249,46 @@ RISK_OFFICER_JSON_SCHEMA = {
     "properties": {
         "decision_id": {
             "type": "string",
-            "description": "Unique decision identifier (UUID format)"
+            "description": "Unique decision identifier (UUID format)",
         },
         "supervisor_decision": {
             "type": "object",
-            "description": "Complete supervisor decision object"
+            "description": "Complete supervisor decision object",
         },
         "risk_officer_analysis": {
             "type": "string",
-            "description": "Detailed risk officer analysis"
+            "description": "Detailed risk officer analysis",
         },
         "approval_status": {
             "type": "string",
             "enum": ["pending", "approved", "rejected", "approved_with_constraints"],
-            "description": "Final approval status"
+            "description": "Final approval status",
         },
         "approved_constraints": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Final approved constraints"
+            "description": "Final approved constraints",
         },
         "risk_mitigation": {
             "type": "array",
             "items": {"type": "string"},
-            "description": "Risk mitigation measures"
+            "description": "Risk mitigation measures",
         },
-        "final_approval": {
-            "type": "boolean",
-            "description": "Final approval decision"
-        },
-        "reasoning": {
-            "type": "string",
-            "description": "Detailed reasoning for decision"
-        },
-        "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Decision timestamp"
-        }
+        "final_approval": {"type": "boolean", "description": "Final approval decision"},
+        "reasoning": {"type": "string", "description": "Detailed reasoning for decision"},
+        "timestamp": {"type": "string", "format": "date-time", "description": "Decision timestamp"},
     },
-    "required": ["decision_id", "supervisor_decision", "risk_officer_analysis", "approval_status", "approved_constraints", "risk_mitigation", "final_approval", "reasoning", "timestamp"]
+    "required": [
+        "decision_id",
+        "supervisor_decision",
+        "risk_officer_analysis",
+        "approval_status",
+        "approved_constraints",
+        "risk_mitigation",
+        "final_approval",
+        "reasoning",
+        "timestamp",
+    ],
 }
 
 
@@ -292,13 +296,14 @@ RISK_OFFICER_JSON_SCHEMA = {
 # PROMPT UTILITIES
 # ============================================================================
 
+
 def format_supervisor_prompt(
     session_info: str,
-    market_conditions: Dict[str, Any],
-    risk_metrics: Dict[str, Any],
+    market_conditions: dict[str, Any],
+    risk_metrics: dict[str, Any],
     recent_trades: list,
     tool_name: str,
-    input_data: Dict[str, Any],
+    input_data: dict[str, Any],
     reasoning: str,
     risk_assessment: str,
     expected_outcome: str,
@@ -307,7 +312,7 @@ def format_supervisor_prompt(
     regime_label: str = "unknown",
     regime_confidence: float = 0.5,
     regime_features: str = "{}",
-    trading_session: str = "unknown"
+    trading_session: str = "unknown",
 ) -> str:
     """Format the supervisor prompt with actual data."""
     return SUPERVISOR_USER_PROMPT_TEMPLATE.format(
@@ -325,12 +330,12 @@ def format_supervisor_prompt(
         regime_label=regime_label,
         regime_confidence=regime_confidence,
         regime_features=regime_features,
-        trading_session=trading_session
+        trading_session=trading_session,
     )
 
 
 def format_risk_officer_prompt(
-    supervisor_decision: Dict[str, Any],
+    supervisor_decision: dict[str, Any],
     daily_loss_percent: float,
     daily_loss_limit: float,
     open_positions: int,
@@ -345,7 +350,7 @@ def format_risk_officer_prompt(
     emergency_threshold: float,
     regime_label: str = "unknown",
     regime_confidence: float = 0.5,
-    regime_impact: str = "neutral"
+    regime_impact: str = "neutral",
 ) -> str:
     """Format the risk officer prompt with actual data."""
     return RISK_OFFICER_USER_PROMPT_TEMPLATE.format(
@@ -364,7 +369,7 @@ def format_risk_officer_prompt(
         emergency_threshold=emergency_threshold,
         regime_label=regime_label,
         regime_confidence=regime_confidence,
-        regime_impact=regime_impact
+        regime_impact=regime_impact,
     )
 
 

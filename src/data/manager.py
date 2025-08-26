@@ -3,15 +3,16 @@ Data management for MR BEN Trading System.
 Handles data fetching, preprocessing, and technical indicators.
 """
 
-import logging
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
 
 # Global MT5 availability flag
 try:
     import MetaTrader5 as mt5
+
     MT5_AVAILABLE = True
 except ImportError:
     MT5_AVAILABLE = False
@@ -19,11 +20,11 @@ except ImportError:
 
 class MT5DataManager:
     """Manages data fetching and preprocessing for trading system."""
-    
+
     def __init__(self, symbol: str, timeframe_min: int):
         """
         Initialize data manager.
-        
+
         Args:
             symbol: Trading symbol
             timeframe_min: Timeframe in minutes
@@ -31,7 +32,7 @@ class MT5DataManager:
         self.symbol = symbol
         self.timeframe_min = timeframe_min
         self.mt5_connected = False
-        self.current_data: Optional[pd.DataFrame] = None
+        self.current_data: pd.DataFrame | None = None
 
         if MT5_AVAILABLE:
             self._initialize_mt5()
@@ -54,24 +55,33 @@ class MT5DataManager:
     def _tf_to_mt5(self, minutes: int) -> int:
         """Map minute timeframe to MT5 enum."""
         m = minutes
-        if m == 1: return mt5.TIMEFRAME_M1
-        if m == 2: return mt5.TIMEFRAME_M2
-        if m == 3: return mt5.TIMEFRAME_M3
-        if m == 4: return mt5.TIMEFRAME_M4
-        if m == 5: return mt5.TIMEFRAME_M5
-        if m == 10: return mt5.TIMEFRAME_M10
-        if m == 15: return mt5.TIMEFRAME_M15
-        if m == 30: return mt5.TIMEFRAME_M30
-        if m == 60: return mt5.TIMEFRAME_H1
+        if m == 1:
+            return mt5.TIMEFRAME_M1
+        if m == 2:
+            return mt5.TIMEFRAME_M2
+        if m == 3:
+            return mt5.TIMEFRAME_M3
+        if m == 4:
+            return mt5.TIMEFRAME_M4
+        if m == 5:
+            return mt5.TIMEFRAME_M5
+        if m == 10:
+            return mt5.TIMEFRAME_M10
+        if m == 15:
+            return mt5.TIMEFRAME_M15
+        if m == 30:
+            return mt5.TIMEFRAME_M30
+        if m == 60:
+            return mt5.TIMEFRAME_H1
         return mt5.TIMEFRAME_M15
 
     def get_latest_data(self, bars: int = 500) -> pd.DataFrame:
         """
         Get latest market data.
-        
+
         Args:
             bars: Number of bars to fetch
-            
+
         Returns:
             DataFrame with OHLCV data and indicators
         """
@@ -94,10 +104,10 @@ class MT5DataManager:
             print(f"❌ get_latest_data error: {e}")
             return self._get_synthetic_data(bars)
 
-    def get_current_tick(self) -> Optional[Dict[str, Any]]:
+    def get_current_tick(self) -> dict[str, Any] | None:
         """
         Get current tick data.
-        
+
         Returns:
             Dictionary with tick information or None
         """
@@ -111,20 +121,21 @@ class MT5DataManager:
             # Make tick time timezone-aware using trader config timezone
             try:
                 import pytz
-                with open('config.json', 'r', encoding='utf-8') as f:
+
+                with open('config.json', encoding='utf-8') as f:
                     import json
+
                     cfg = json.load(f)
                 tzname = cfg.get("session", {}).get("timezone", "Etc/UTC")
                 tz = pytz.timezone(tzname)
             except Exception:
                 tz = None
 
-            from datetime import timezone
-            tick_dt_utc = datetime.fromtimestamp(t.time, tz=timezone.utc)  # epoch is UTC
+            tick_dt_utc = datetime.fromtimestamp(t.time, tz=UTC)  # epoch is UTC
             tick_time = tick_dt_utc.astimezone(tz) if tz else tick_dt_utc
 
             # Staleness check in the same tz basis (seconds don't depend on tz)
-            if (datetime.now(timezone.utc) - tick_dt_utc).total_seconds() > 300:
+            if (datetime.now(UTC) - tick_dt_utc).total_seconds() > 300:
                 return None
 
             return {'bid': t.bid, 'ask': t.ask, 'time': tick_time, 'volume': t.volume}
@@ -171,20 +182,26 @@ class MT5DataManager:
             hi = max(op, cl) + np.random.uniform(0, 3)
             lo = min(op, cl) - np.random.uniform(0, 3)
             vol = np.random.randint(100, 1000)
-            data.append({
-                'time': now - timedelta(minutes=i*self.timeframe_min),
-                'open': op, 'high': hi, 'low': lo, 'close': cl, 'tick_volume': vol
-            })
+            data.append(
+                {
+                    'time': now - timedelta(minutes=i * self.timeframe_min),
+                    'open': op,
+                    'high': hi,
+                    'low': lo,
+                    'close': cl,
+                    'tick_volume': vol,
+                }
+            )
         df = pd.DataFrame(data)[::-1].reset_index(drop=True)
         return self._indicators(df)
 
     def refresh_symbol(self, symbol: str) -> bool:
         """
         Refresh symbol data and reinitialize if needed.
-        
+
         Args:
             symbol: Symbol to refresh
-            
+
         Returns:
             True if successful
         """

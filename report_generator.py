@@ -1,6 +1,6 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 log_file = "live_trades_log.csv"
 df = pd.read_csv(log_file)
@@ -12,20 +12,19 @@ if "timestamp" in df.columns:
 # 2. ساخت ستون نتیجه (WIN/LOSE) و محاسبه PnL
 if "result" not in df.columns or df["result"].isnull().all():
     # اگر لاگ فقط معاملات ورودی دارد، فرض کن هر سفارش بسته شده با TP یا SL (اینجا فقط جهت دمو)
-    df["exit_price"] = np.where(
-        np.random.rand(len(df)) > 0.5, df["tp"], df["sl"]
-    )
+    df["exit_price"] = np.where(np.random.rand(len(df)) > 0.5, df["tp"], df["sl"])
     df["result"] = np.where(
-        ((df["action"] == "BUY") & (df["exit_price"] > df["entry_price"])) |
-        ((df["action"] == "SELL") & (df["exit_price"] < df["entry_price"])),
-        "WIN", "LOSE"
+        ((df["action"] == "BUY") & (df["exit_price"] > df["entry_price"]))
+        | ((df["action"] == "SELL") & (df["exit_price"] < df["entry_price"])),
+        "WIN",
+        "LOSE",
     )
 
 # 3. محاسبه سود/زیان هر معامله (PNL)
 df["pnl"] = np.where(
     df["action"] == "BUY",
     df["exit_price"] - df["entry_price"],
-    df["entry_price"] - df["exit_price"]
+    df["entry_price"] - df["exit_price"],
 )
 
 # 4. آمار دقیق

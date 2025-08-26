@@ -8,16 +8,16 @@ Enhanced with CLI interface, regime detection, adaptive confidence, and agent su
 import argparse
 import json
 import logging
+import math
 import os
 import sys
-import time
 import threading
+import time
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Tuple, List
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from dataclasses import dataclass, asdict
-import math
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add src directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 # Import modular components
 try:
     from config import MT5Config
+
     # Only import if these modules exist
     try:
         from trading_system import TradingSystem
@@ -38,7 +39,7 @@ try:
     except ImportError:
         TRADING_LOOP_AVAILABLE = False
         
-    from telemetry import EventLogger, MFELogger, PerformanceMetrics, MemoryMonitor
+    from telemetry import EventLogger, MemoryMonitor, MFELogger, PerformanceMetrics
 except ImportError:
     try:
         # Try src/ imports
@@ -55,7 +56,7 @@ except ImportError:
         except ImportError:
             TRADING_LOOP_AVAILABLE = False
             
-        from src.telemetry import EventLogger, MFELogger, PerformanceMetrics, MemoryMonitor
+        from src.telemetry import EventLogger, MemoryMonitor, MFELogger, PerformanceMetrics
     except ImportError:
         # Fallback to existing classes if modular imports fail
         TRADING_SYSTEM_AVAILABLE = False
@@ -65,21 +66,28 @@ except ImportError:
 # Import agent components
 try:
     from src.agent import (
-        maybe_start_agent, DecisionCard, HealthEvent, AgentAction,
-        AdvancedRiskGate, AdvancedPlaybooks, MLIntegration, 
-        PredictiveMaintenance, AdvancedAlerting, DashboardIntegration
+        AdvancedAlerting,
+        AdvancedPlaybooks,
+        AdvancedRiskGate,
+        AgentAction,
+        DashboardIntegration,
+        DecisionCard,
+        HealthEvent,
+        MLIntegration,
+        PredictiveMaintenance,
+        maybe_start_agent,
     )
     AGENT_AVAILABLE = True
 except ImportError:
     try:
         # Try alternative import paths
-        from src.agent.bridge import maybe_start_agent
-        from src.agent.risk_gate import AdvancedRiskGate
+        from src.agent.advanced_alerting import AdvancedAlerting
         from src.agent.advanced_playbooks import AdvancedPlaybooks
+        from src.agent.bridge import maybe_start_agent
+        from src.agent.dashboard import DashboardIntegration
         from src.agent.ml_integration import MLIntegration
         from src.agent.predictive_maintenance import PredictiveMaintenance
-        from src.agent.advanced_alerting import AdvancedAlerting
-        from src.agent.dashboard import DashboardIntegration
+        from src.agent.risk_gate import AdvancedRiskGate
         AGENT_AVAILABLE = True
     except ImportError:
         AGENT_AVAILABLE = False
@@ -399,7 +407,8 @@ def apply_regime_and_threshold(core_ctx, symbol: str, cfg, raw_conf: float):
     try:
         # Import regime detection components
         try:
-            from src.ai.regime import infer_regime, RegimeSnapshot, RegimeLabel
+            from src.ai.regime import RegimeLabel, RegimeSnapshot, infer_regime
+
             # Try both singular and plural paths for scorer
             try:
                 from src.strategy.scorer import adapt_confidence
@@ -566,6 +575,7 @@ def maybe_start_agent(cfg, mode: str):
     """Start agent bridge if available"""
     try:
         from src.agent.bridge import maybe_start_agent as agent_maybe_start
+
         # Convert MT5Config to dict-like object for agent
         config_dict = cfg.config_data if hasattr(cfg, 'config_data') else cfg
         return agent_maybe_start(config_dict, mode)
@@ -1203,7 +1213,7 @@ class MemoryMonitor:
                 return None
             
             import gc
-            
+
             # Force garbage collection
             collected = gc.collect()
             
@@ -1243,7 +1253,7 @@ class MemoryMonitor:
         """Force memory cleanup"""
         try:
             import gc
-            
+
             # Force garbage collection
             collected = gc.collect()
             

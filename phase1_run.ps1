@@ -80,4 +80,3 @@ if(Test-Path $LogPath){
 
 $report -join "`r`n" | Tee-Object -FilePath .\PHASE1_REPORT.txt
 Write-Host "`n--- PHASE1_REPORT saved to PHASE1_REPORT.txt ---`n" -ForegroundColor Cyan
-

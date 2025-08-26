@@ -1,13 +1,14 @@
-import pandas as pd
-import numpy as np
-from tensorflow import keras
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 import joblib
+import numpy as np
+import pandas as pd
 import talib
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow import keras
 
 # --- بارگذاری داده ---
 df = pd.read_csv("ohlc_data.csv")
+
 
 def prepare_features(df):
     data = df.copy()
@@ -38,21 +39,39 @@ def prepare_features(df):
     data = data.dropna().reset_index(drop=True)
     return data
 
+
 df = prepare_features(df)
 
 lookback = 60
 horizon = 5
 X, y = [], []
 feature_columns = [
-    'open', 'high', 'low', 'close', 'tick_volume',
-    'SMA_20', 'SMA_50', 'EMA_12', 'EMA_26',
-    'RSI', 'MACD', 'MACD_signal', 'MACD_hist',
-    'BB_width', 'Stoch_K', 'Stoch_D', 'ATR',
-    'price_change', 'price_vs_sma20', 'price_vs_sma50',
-    'bb_position', 'volatility_10', 'atr_ratio'
+    'open',
+    'high',
+    'low',
+    'close',
+    'tick_volume',
+    'SMA_20',
+    'SMA_50',
+    'EMA_12',
+    'EMA_26',
+    'RSI',
+    'MACD',
+    'MACD_signal',
+    'MACD_hist',
+    'BB_width',
+    'Stoch_K',
+    'Stoch_D',
+    'ATR',
+    'price_change',
+    'price_vs_sma20',
+    'price_vs_sma50',
+    'bb_position',
+    'volatility_10',
+    'atr_ratio',
 ]
 for i in range(lookback, len(df) - horizon):
-    X.append(df[feature_columns].iloc[i-lookback:i].values)
+    X.append(df[feature_columns].iloc[i - lookback : i].values)
     future_return = (df['close'].iloc[i + horizon] - df['close'].iloc[i]) / df['close'].iloc[i]
     if future_return > 0.005:
         y.append(2)  # BUY
@@ -68,7 +87,9 @@ X_shape = X.shape
 X_reshaped = X.reshape(-1, X_shape[2])
 X_scaled = scaler.fit_transform(X_reshaped).reshape(X_shape)
 
-X_train, X_val, y_train, y_val = train_test_split(X_scaled, y, test_size=0.2, random_state=42, stratify=y)
+X_train, X_val, y_train, y_val = train_test_split(
+    X_scaled, y, test_size=0.2, random_state=42, stratify=y
+)
 
 model = keras.Sequential()
 model.add(keras.layers.LSTM(100, return_sequences=True, input_shape=(lookback, X.shape[2])))
@@ -83,16 +104,19 @@ model.add(keras.layers.Dense(3, activation='softmax'))
 model.compile(
     optimizer=keras.optimizers.Adam(learning_rate=0.001),
     loss='sparse_categorical_crossentropy',
-    metrics=['accuracy']
+    metrics=['accuracy'],
 )
-early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+early_stopping = keras.callbacks.EarlyStopping(
+    monitor='val_loss', patience=10, restore_best_weights=True
+)
 history = model.fit(
-    X_train, y_train,
+    X_train,
+    y_train,
     validation_data=(X_val, y_val),
     epochs=100,
     batch_size=32,
     callbacks=[early_stopping],
-    verbose=2
+    verbose=2,
 )
 model.save("lstm_trading_model.h5")
 joblib.dump(scaler, "lstm_scaler.save")
@@ -100,4 +124,5 @@ print("✅ مدل سه‌کلاسه LSTM و اسکیلر ذخیره شدند.")
 val_loss, val_acc = model.evaluate(X_val, y_val, verbose=0)
 print(f"🎯 دقت مدل روی داده اعتبارسنجی: {val_acc:.3f}")
 import collections
+
 print("توزیع کلاس‌ها در y:", collections.Counter(y))

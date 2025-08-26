@@ -1,6 +1,6 @@
+import hashlib
 import os
 import shutil
-import hashlib
 from datetime import datetime
 
 BASE_DIR = os.getcwd()
@@ -11,8 +11,24 @@ folder_map = {
     'src': ['main.py', 'main_runner.py', 'app.py', 'settings.json'],
     'data': ['.csv', '.npy', 'XAUUSD_PRO'],
     'models': ['.h5', '.save', '.joblib'],
-    'strategies': ['strategy', 'book_', 'signal_generator', 'lstm_trading_model', 'ml_signal_filter'],
-    'tools': ['download_', 'calculate_', 'fix_', 'export_', 'prepare_', 'feature_', 'plot_', 'check_', 'generate_'],
+    'strategies': [
+        'strategy',
+        'book_',
+        'signal_generator',
+        'lstm_trading_model',
+        'ml_signal_filter',
+    ],
+    'tools': [
+        'download_',
+        'calculate_',
+        'fix_',
+        'export_',
+        'prepare_',
+        'feature_',
+        'plot_',
+        'check_',
+        'generate_',
+    ],
     'tests': ['test_', 'run_tests'],
     'dashboards': ['dashboard', 'mrben_dashboard', 'web'],
     'backtests': ['backtest', 'optimize_', 'sl_tp', 'train_'],
@@ -26,6 +42,7 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 for folder in folder_map:
     os.makedirs(os.path.join(BASE_DIR, folder), exist_ok=True)
 
+
 # تابع هش فایل برای تشخیص تکراری بودن
 def hash_file(filepath):
     hasher = hashlib.md5()
@@ -33,6 +50,7 @@ def hash_file(filepath):
         buf = f.read()
         hasher.update(buf)
     return hasher.hexdigest()
+
 
 # فایل‌های تکراری بر اساس هش
 hashes_seen = {}
@@ -43,7 +61,11 @@ with open(LOG_FILE, 'w', encoding='utf-8') as log:
 
     for file in os.listdir(BASE_DIR):
         file_path = os.path.join(BASE_DIR, file)
-        if os.path.isfile(file_path) and file != os.path.basename(__file__) and file != os.path.basename(LOG_FILE):
+        if (
+            os.path.isfile(file_path)
+            and file != os.path.basename(__file__)
+            and file != os.path.basename(LOG_FILE)
+        ):
             moved = False
 
             # تشخیص هش فایل

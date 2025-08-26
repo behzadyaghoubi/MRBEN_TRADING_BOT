@@ -5,28 +5,16 @@ Prometheus metrics for real-time monitoring and performance tracking
 """
 
 from __future__ import annotations
-from typing import Optional
-from prometheus_client import (
-    Counter, Gauge, Histogram, Summary, start_http_server
-)
+
+from prometheus_client import Counter, Gauge, Histogram, Summary, start_http_server
 
 # ==== Counters ====
-TRADES_OPENED = Counter(
-    'mrben_trades_opened_total', 'Opened trades',
-    ['symbol', 'dir', 'track']
-)
+TRADES_OPENED = Counter('mrben_trades_opened_total', 'Opened trades', ['symbol', 'dir', 'track'])
 TRADES_CLOSED = Counter(
-    'mrben_trades_closed_total', 'Closed trades',
-    ['symbol', 'dir', 'track', 'outcome']
+    'mrben_trades_closed_total', 'Closed trades', ['symbol', 'dir', 'track', 'outcome']
 )
-BLOCKS = Counter(
-    'mrben_blocks_total', 'Blocked decisions by reason',
-    ['reason']
-)
-ORDERS_SENT = Counter(
-    'mrben_orders_sent_total', 'Orders sent by mode',
-    ['mode']
-)
+BLOCKS = Counter('mrben_blocks_total', 'Blocked decisions by reason', ['reason'])
+ORDERS_SENT = Counter('mrben_orders_sent_total', 'Orders sent by mode', ['mode'])
 
 # ==== Gauges ====
 EQUITY = Gauge('mrben_equity', 'Current equity (base currency)')
@@ -41,16 +29,17 @@ SESSION = Gauge('mrben_session_code', 'Session code: asia=0,london=1,ny=2,off=3'
 
 # ==== Histograms / Summaries ====
 TRADE_R = Histogram(
-    'mrben_trade_r', 'Per-trade R multiple',
-    buckets=[-3, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 5]
+    'mrben_trade_r',
+    'Per-trade R multiple',
+    buckets=[-3, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 5],
 )
 SLIPPAGE = Histogram(
-    'mrben_slippage_points', 'Execution slippage (points)',
-    buckets=[0, 2, 5, 10, 20, 40, 80]
+    'mrben_slippage_points', 'Execution slippage (points)', buckets=[0, 2, 5, 10, 20, 40, 80]
 )
 LATENCY = Histogram(
-    'mrben_order_latency_ms', 'Order send latency (ms)',
-    buckets=[5, 10, 20, 50, 100, 200, 400, 800, 1600]
+    'mrben_order_latency_ms',
+    'Order send latency (ms)',
+    buckets=[5, 10, 20, 50, 100, 200, 400, 800, 1600],
 )
 PAYOUT = Summary('mrben_trade_payout_r', 'Per-trade payout (R) summary')
 
@@ -60,7 +49,7 @@ _SESSION_MAP = {"asia": 0, "london": 1, "ny": 2, "off": 3}
 
 # ==== Global State ====
 _started = False
-_peak_equity: Optional[float] = None
+_peak_equity: float | None = None
 
 
 def init_metrics(port: int = 8765):
@@ -74,12 +63,19 @@ def init_metrics(port: int = 8765):
 # ===== Context updaters =====
 
 
-def update_context(equity: float, balance: float, spread_pts: float,
-                   session: str, regime: str, dyn_conf: float, score: float,
-                   open_positions: int):
+def update_context(
+    equity: float,
+    balance: float,
+    spread_pts: float,
+    session: str,
+    regime: str,
+    dyn_conf: float,
+    score: float,
+    open_positions: int,
+):
     """Update context metrics with current values"""
     global _peak_equity
-    
+
     # Update basic metrics
     EQUITY.set(equity)
     BALANCE.set(balance)
@@ -87,19 +83,19 @@ def update_context(equity: float, balance: float, spread_pts: float,
     CONF_DYN.set(dyn_conf)
     SCORE.set(score)
     EXPOSURE.set(open_positions)
-    
+
     # Update regime and session codes
     REGIME.set(_REGIME_MAP.get(regime.upper(), -1))
     SESSION.set(_SESSION_MAP.get(session, 3))
-    
+
     # Calculate and update drawdown
     if _peak_equity is None or equity > _peak_equity:
         _peak_equity = equity
-    
+
     dd = 0.0
     if _peak_equity and _peak_equity > 0:
         dd = max(0.0, 1.0 - equity / float(_peak_equity))
-    
+
     DRAWDOWN.set(dd * 100.0)
 
 
@@ -133,7 +129,7 @@ def observe_trade_open(symbol: str, direction: int, track: str):
 def observe_trade_close(symbol: str, direction: int, track: str, r_multiple: float):
     """Observe trade closing with outcome"""
     dir_label = 'buy' if direction > 0 else 'sell'
-    
+
     # Determine outcome
     if abs(r_multiple) < 1e-9:
         outcome = 'be'  # breakeven
@@ -141,10 +137,10 @@ def observe_trade_close(symbol: str, direction: int, track: str, r_multiple: flo
         outcome = 'win'
     else:
         outcome = 'loss'
-    
+
     # Update counters
     TRADES_CLOSED.labels(symbol=symbol, dir=dir_label, track=track, outcome=outcome).inc()
-    
+
     # Update histograms and summaries
     TRADE_R.observe(r_multiple)
     PAYOUT.observe(r_multiple)
@@ -194,7 +190,9 @@ def observe_agent_intervention(action: str, confidence: str, reason: str):
     # This will be implemented when we add agent metrics
     pass
 
+
 # ===== Advanced Risk Analytics Metrics =====
+
 
 def observe_risk_metric(metric_name: str, value: float):
     """Observe risk metric values"""
@@ -204,22 +202,29 @@ def observe_risk_metric(metric_name: str, value: float):
     except Exception as e:
         logger.warning(f"Failed to observe risk metric {metric_name}: {e}")
 
+
 def observe_risk_prediction(predicted_risk: float, actual_risk: float, accuracy: float):
     """Observe risk prediction accuracy"""
     try:
         risk_prediction_accuracy.observe(accuracy)
         risk_prediction_error.labels(type="absolute").observe(abs(predicted_risk - actual_risk))
-        risk_prediction_error.labels(type="relative").observe(abs(predicted_risk - actual_risk) / max(actual_risk, 0.001))
+        risk_prediction_error.labels(type="relative").observe(
+            abs(predicted_risk - actual_risk) / max(actual_risk, 0.001)
+        )
     except Exception as e:
         logger.warning(f"Failed to observe risk prediction: {e}")
 
+
 # Risk metrics
 risk_metric_gauge = Gauge('mrben_risk_metric', 'Risk metric values', ['metric'])
-risk_metric_histogram = Histogram('mrben_risk_metric_distribution', 'Risk metric distribution', ['metric'])
+risk_metric_histogram = Histogram(
+    'mrben_risk_metric_distribution', 'Risk metric distribution', ['metric']
+)
 risk_prediction_accuracy = Histogram('mrben_risk_prediction_accuracy', 'Risk prediction accuracy')
 risk_prediction_error = Histogram('mrben_risk_prediction_error', 'Risk prediction error', ['type'])
 
 # ===== Advanced Position Management Metrics =====
+
 
 def observe_position_metric(metric_name: str, value: float):
     """Observe position management metric values"""
@@ -228,6 +233,7 @@ def observe_position_metric(metric_name: str, value: float):
         position_metric_histogram.labels(metric=metric_name).observe(value)
     except Exception as e:
         logger.warning(f"Failed to observe position metric {metric_name}: {e}")
+
 
 def observe_position_adjustment(action: str, lot_change: float, confidence: float):
     """Observe position adjustment actions"""
@@ -238,14 +244,26 @@ def observe_position_adjustment(action: str, lot_change: float, confidence: floa
     except Exception as e:
         logger.warning(f"Failed to observe position adjustment: {e}")
 
+
 # Position management metrics
-position_metric_gauge = Gauge('mrben_position_metric', 'Position management metric values', ['metric'])
-position_metric_histogram = Histogram('mrben_position_metric_distribution', 'Position management metric distribution', ['metric'])
-position_adjustment_counter = Counter('mrben_position_adjustment_total', 'Total position adjustments', ['action'])
-position_adjustment_lot_change = Histogram('mrben_position_adjustment_lot_change', 'Position adjustment lot size changes')
-position_adjustment_confidence = Histogram('mrben_position_adjustment_confidence', 'Position adjustment confidence levels')
+position_metric_gauge = Gauge(
+    'mrben_position_metric', 'Position management metric values', ['metric']
+)
+position_metric_histogram = Histogram(
+    'mrben_position_metric_distribution', 'Position management metric distribution', ['metric']
+)
+position_adjustment_counter = Counter(
+    'mrben_position_adjustment_total', 'Total position adjustments', ['action']
+)
+position_adjustment_lot_change = Histogram(
+    'mrben_position_adjustment_lot_change', 'Position adjustment lot size changes'
+)
+position_adjustment_confidence = Histogram(
+    'mrben_position_adjustment_confidence', 'Position adjustment confidence levels'
+)
 
 # ===== Advanced Market Analysis Metrics =====
+
 
 def observe_market_metric(metric_name: str, value: float):
     """Observe market analysis metric values"""
@@ -255,6 +273,7 @@ def observe_market_metric(metric_name: str, value: float):
     except Exception as e:
         logger.warning(f"Failed to observe market metric {metric_name}: {e}")
 
+
 def observe_market_regime_change(old_regime: str, new_regime: str, confidence: float):
     """Observe market regime changes"""
     try:
@@ -263,13 +282,21 @@ def observe_market_regime_change(old_regime: str, new_regime: str, confidence: f
     except Exception as e:
         logger.warning(f"Failed to observe market regime change: {e}")
 
+
 # Market analysis metrics
 market_metric_gauge = Gauge('mrben_market_metric', 'Market analysis metric values', ['metric'])
-market_metric_histogram = Histogram('mrben_market_metric_distribution', 'Market analysis metric distribution', ['metric'])
-market_regime_change_counter = Counter('mrben_market_regime_change_total', 'Total market regime changes', ['old_regime', 'new_regime'])
-market_regime_confidence = Histogram('mrben_market_regime_confidence', 'Market regime change confidence levels')
+market_metric_histogram = Histogram(
+    'mrben_market_metric_distribution', 'Market analysis metric distribution', ['metric']
+)
+market_regime_change_counter = Counter(
+    'mrben_market_regime_change_total', 'Total market regime changes', ['old_regime', 'new_regime']
+)
+market_regime_confidence = Histogram(
+    'mrben_market_regime_confidence', 'Market regime change confidence levels'
+)
 
 # ===== Advanced Signal Generation Metrics =====
+
 
 def observe_signal_metric(metric_name: str, value: float):
     """Observe signal generation metric values"""
@@ -278,6 +305,7 @@ def observe_signal_metric(metric_name: str, value: float):
         signal_metric_histogram.labels(metric=metric_name).observe(value)
     except Exception as e:
         logger.warning(f"Failed to observe signal metric {metric_name}: {e}")
+
 
 def observe_signal_quality(signal_type: str, quality_score: float, confidence: float):
     """Observe signal quality metrics"""
@@ -289,6 +317,7 @@ def observe_signal_quality(signal_type: str, quality_score: float, confidence: f
     except Exception as e:
         logger.warning(f"Failed to observe signal quality: {e}")
 
+
 def observe_signal_fusion(method: str, quality_score: float, confidence: float):
     """Observe signal fusion performance"""
     try:
@@ -298,18 +327,28 @@ def observe_signal_fusion(method: str, quality_score: float, confidence: float):
     except Exception as e:
         logger.warning(f"Failed to observe signal fusion: {e}")
 
+
 # Signal generation metrics
 signal_metric_gauge = Gauge('mrben_signal_metric', 'Signal generation metric values', ['metric'])
-signal_metric_histogram = Histogram('mrben_signal_metric_distribution', 'Signal generation metric distribution', ['metric'])
+signal_metric_histogram = Histogram(
+    'mrben_signal_metric_distribution', 'Signal generation metric distribution', ['metric']
+)
 signal_quality_gauge = Gauge('mrben_signal_quality', 'Signal quality scores', ['type'])
 signal_confidence_gauge = Gauge('mrben_signal_confidence', 'Signal confidence levels', ['type'])
-signal_quality_histogram = Histogram('mrben_signal_quality_distribution', 'Signal quality distribution', ['type'])
-signal_confidence_histogram = Histogram('mrben_signal_confidence_distribution', 'Signal confidence distribution', ['type'])
+signal_quality_histogram = Histogram(
+    'mrben_signal_quality_distribution', 'Signal quality distribution', ['type']
+)
+signal_confidence_histogram = Histogram(
+    'mrben_signal_confidence_distribution', 'Signal confidence distribution', ['type']
+)
 signal_fusion_counter = Counter('mrben_signal_fusion_total', 'Total signal fusions', ['method'])
 signal_fusion_quality = Histogram('mrben_signal_fusion_quality', 'Signal fusion quality scores')
-signal_fusion_confidence = Histogram('mrben_signal_fusion_confidence', 'Signal fusion confidence levels')
+signal_fusion_confidence = Histogram(
+    'mrben_signal_fusion_confidence', 'Signal fusion confidence levels'
+)
 
 # ===== Advanced Portfolio Management Metrics =====
+
 
 def observe_portfolio_metric(metric_name: str, value: float):
     """Observe portfolio management metric values"""
@@ -319,6 +358,7 @@ def observe_portfolio_metric(metric_name: str, value: float):
     except Exception as e:
         logger.warning(f"Failed to observe portfolio metric {metric_name}: {e}")
 
+
 def observe_portfolio_allocation(strategy: str, method: str, confidence: float):
     """Observe portfolio allocation performance"""
     try:
@@ -326,6 +366,7 @@ def observe_portfolio_allocation(strategy: str, method: str, confidence: float):
         portfolio_allocation_confidence.observe(confidence)
     except Exception as e:
         logger.warning(f"Failed to observe portfolio allocation: {e}")
+
 
 def observe_portfolio_risk(risk_type: str, value: float):
     """Observe portfolio risk metrics"""
@@ -335,13 +376,24 @@ def observe_portfolio_risk(risk_type: str, value: float):
     except Exception as e:
         logger.warning(f"Failed to observe portfolio risk: {e}")
 
+
 # Portfolio management metrics
-portfolio_metric_gauge = Gauge('mrben_portfolio_metric', 'Portfolio management metric values', ['metric'])
-portfolio_metric_histogram = Histogram('mrben_portfolio_metric_distribution', 'Portfolio management metric distribution', ['metric'])
-portfolio_allocation_counter = Counter('mrben_portfolio_allocation_total', 'Total portfolio allocations', ['strategy', 'method'])
-portfolio_allocation_confidence = Histogram('mrben_portfolio_allocation_confidence', 'Portfolio allocation confidence levels')
+portfolio_metric_gauge = Gauge(
+    'mrben_portfolio_metric', 'Portfolio management metric values', ['metric']
+)
+portfolio_metric_histogram = Histogram(
+    'mrben_portfolio_metric_distribution', 'Portfolio management metric distribution', ['metric']
+)
+portfolio_allocation_counter = Counter(
+    'mrben_portfolio_allocation_total', 'Total portfolio allocations', ['strategy', 'method']
+)
+portfolio_allocation_confidence = Histogram(
+    'mrben_portfolio_allocation_confidence', 'Portfolio allocation confidence levels'
+)
 portfolio_risk_gauge = Gauge('mrben_portfolio_risk', 'Portfolio risk metric values', ['type'])
-portfolio_risk_histogram = Histogram('mrben_portfolio_risk_distribution', 'Portfolio risk metric distribution', ['type'])
+portfolio_risk_histogram = Histogram(
+    'mrben_portfolio_risk_distribution', 'Portfolio risk metric distribution', ['type']
+)
 
 
 # ===== Utility Functions =====
@@ -358,7 +410,7 @@ def get_metrics_summary() -> dict:
         "confidence": CONF_DYN._value.get(),
         "decision_score": SCORE._value.get(),
         "regime_code": REGIME._value.get(),
-        "session_code": SESSION._value.get()
+        "session_code": SESSION._value.get(),
     }
 
 
@@ -366,10 +418,10 @@ def reset_metrics():
     """Reset all metrics (useful for testing)"""
     global _peak_equity
     _peak_equity = None
-    
+
     # Reset all gauges
     for metric in [EQUITY, BALANCE, DRAWDOWN, EXPOSURE, SPREAD, CONF_DYN, SCORE, REGIME, SESSION]:
         metric._value.set(0.0)
-    
+
     # Note: Counters, histograms, and summaries cannot be easily reset in prometheus_client
     # This is a limitation of the library

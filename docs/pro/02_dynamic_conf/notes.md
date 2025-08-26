@@ -69,8 +69,8 @@ Implementation of dynamic confidence adjustment based on ATR volatility, market 
 🎯 Decision Summary:
    Signal: -1 | Confidence: 0.700 | Consecutive: 2/1
    Price: 3341.96000 | SMA20: 3344.35450 | SMA50: 3345.37460
-   Regime: HIGH_VOL | Adj Conf: 0.560        
-   Threshold: 0.550 | Allow Trade: True     
+   Regime: HIGH_VOL | Adj Conf: 0.560
+   Threshold: 0.550 | Allow Trade: True
    ATR: 2.33 | Session: LONDON
 ```
 

@@ -5,7 +5,7 @@ deployment:
   version: "1.0.0"
   environment: "production"
   description: "MR BEN Professional-Grade Live Trading System"
-  
+
   # System Information
   system:
     name: "MR BEN"
@@ -13,7 +13,7 @@ deployment:
     description: "AI-Enhanced Professional Trading System"
     maintainer: "MR BEN Development Team"
     support_email: "support@mrben-trading.com"
-    
+
   # Deployment Environment
   environment_config:
     production:
@@ -23,7 +23,7 @@ deployment:
       metrics_enabled: true
       health_check_interval: 30
       performance_monitoring: true
-      
+
     staging:
       enabled: false
       debug_mode: true
@@ -31,7 +31,7 @@ deployment:
       metrics_enabled: true
       health_check_interval: 15
       performance_monitoring: true
-      
+
     development:
       enabled: false
       debug_mode: true
@@ -39,7 +39,7 @@ deployment:
       metrics_enabled: false
       health_check_interval: 10
       performance_monitoring: false
-  
+
   # System Components
   components:
     core_system:
@@ -48,66 +48,66 @@ deployment:
       health_monitoring: true
       restart_on_failure: true
       max_restart_attempts: 3
-      
+
     advanced_features:
       advanced_risk_analytics: true
       advanced_position_management: true
       advanced_market_analysis: true
       advanced_signal_generation: true
       advanced_portfolio_management: true
-      
+
     monitoring:
       prometheus_metrics: true
       health_dashboard: true
       alerting: true
       log_aggregation: true
       performance_tracking: true
-  
+
   # Resource Requirements
   resources:
     cpu:
       min_cores: 2
       recommended_cores: 4
       max_cores: 8
-      
+
     memory:
       min_ram_mb: 2048
       recommended_ram_mb: 4096
       max_ram_mb: 8192
-      
+
     storage:
       min_disk_gb: 10
       recommended_disk_gb: 50
       log_retention_days: 90
       backup_retention_days: 365
-      
+
     network:
       min_bandwidth_mbps: 10
       recommended_bandwidth_mbps: 100
       latency_threshold_ms: 50
-  
+
   # Security Configuration
   security:
     authentication:
       enabled: true
       method: "api_key"
       session_timeout_hours: 24
-      
+
     authorization:
       enabled: true
       role_based_access: true
       admin_users: []
-      
+
     encryption:
       data_at_rest: true
       data_in_transit: true
       encryption_algorithm: "AES-256"
-      
+
     audit_logging:
       enabled: true
       log_all_actions: true
       retention_days: 365
-  
+
   # Trading Configuration
   trading:
     live_trading:
@@ -115,40 +115,40 @@ deployment:
       broker_connection: "demo"
       max_positions: 10
       max_exposure: 0.5
-      
+
     paper_trading:
       enabled: true
       virtual_balance: 100000
       commission_rate: 0.001
-      
+
     risk_management:
       max_drawdown: 0.20
       max_daily_loss: 0.05
       position_sizing: "kelly_criterion"
       stop_loss_enabled: true
-      
+
     trading_hours:
       auto_detect: true
       manual_override: false
       timezone: "UTC"
-      
+
   # Data Management
   data:
     market_data:
       sources: ["demo", "live"]
       update_frequency_ms: 1000
       history_days: 365
-      
+
     storage:
       database: "sqlite"
       backup_frequency: "daily"
       compression: true
-      
+
     real_time:
       websocket_enabled: true
       fallback_to_rest: true
       connection_timeout: 30
-  
+
   # Monitoring & Alerting
   monitoring:
     health_checks:
@@ -156,13 +156,13 @@ deployment:
       component_health: true
       database_health: true
       network_health: true
-      
+
     metrics:
       trading_metrics: true
       performance_metrics: true
       system_metrics: true
       custom_metrics: true
-      
+
     alerting:
       email_alerts: false
       slack_alerts: false
@@ -172,7 +172,7 @@ deployment:
         memory_usage: 0.8
         disk_usage: 0.9
         error_rate: 0.1
-  
+
   # Logging Configuration
   logging:
     level: "INFO"
@@ -181,69 +181,69 @@ deployment:
       console: true
       file: true
       syslog: false
-      
+
     file_logging:
       enabled: true
       max_size_mb: 100
       max_files: 10
       directory: "logs"
-      
+
     structured_logging:
       enabled: true
       include_timestamps: true
       include_context: true
-      
+
   # Performance Optimization
   performance:
     caching:
       enabled: true
       max_cache_size_mb: 512
       ttl_seconds: 3600
-      
+
     threading:
       max_worker_threads: 8
       thread_pool_size: 16
       async_operations: true
-      
+
     database:
       connection_pool_size: 10
       query_timeout_seconds: 30
       batch_operations: true
-      
+
   # Backup & Recovery
   backup:
     enabled: true
     frequency: "daily"
     retention_days: 30
     compression: true
-    
+
     components:
       configuration: true
       trading_data: true
       logs: true
       models: true
-      
+
     storage:
       local: true
       remote: false
       encryption: true
-      
+
   # Maintenance
   maintenance:
     auto_maintenance: true
     maintenance_window: "02:00-04:00 UTC"
-    
+
     tasks:
       log_rotation: true
       database_cleanup: true
       cache_cleanup: true
       model_retraining: true
-      
+
     scheduling:
       daily: ["log_rotation", "cache_cleanup"]
       weekly: ["database_cleanup", "model_retraining"]
       monthly: ["full_system_check"]
-      
+
   # Integration
   integration:
     external_apis:
@@ -251,44 +251,44 @@ deployment:
       market_data_api: true
       news_api: false
       economic_calendar: false
-      
+
     webhooks:
       enabled: false
       endpoints: []
       authentication: "none"
-      
+
     api_endpoints:
       rest_api: true
       websocket_api: true
       grpc_api: false
-      
+
   # Compliance & Reporting
   compliance:
     regulatory_reporting: false
     trade_reporting: false
     audit_trail: true
-    
+
     data_retention:
       trading_records: 7  # years
       audit_logs: 7       # years
       performance_data: 3  # years
-      
+
   # Disaster Recovery
   disaster_recovery:
     enabled: true
     recovery_time_objective: "4 hours"
     recovery_point_objective: "1 hour"
-    
+
     backup_strategy:
       incremental: "hourly"
       full: "daily"
       offsite: "weekly"
-      
+
     failover:
       enabled: false
       automatic: false
       manual_trigger: true
-      
+
   # Deployment Scripts
   deployment_scripts:
     install: "scripts/install.sh"
@@ -298,33 +298,33 @@ deployment:
     update: "scripts/update.sh"
     backup: "scripts/backup.sh"
     restore: "scripts/restore.sh"
-    
+
   # Health Check Endpoints
   health_endpoints:
     system_health: "/health"
     component_health: "/health/components"
     metrics: "/metrics"
     status: "/status"
-    
+
   # Documentation
   documentation:
     user_manual: "docs/user_manual.md"
     api_reference: "docs/api_reference.md"
     deployment_guide: "docs/deployment_guide.md"
     troubleshooting: "docs/troubleshooting.md"
-    
+
   # Support
   support:
     contact:
       email: "support@mrben-trading.com"
       phone: "+1-555-0123"
       hours: "24/7"
-      
+
     escalation:
       level1: "support@mrben-trading.com"
       level2: "engineering@mrben-trading.com"
       level3: "management@mrben-trading.com"
-      
+
     resources:
       knowledge_base: "https://help.mrben-trading.com"
       community_forum: "https://community.mrben-trading.com"

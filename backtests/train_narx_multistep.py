@@ -1,17 +1,17 @@
-import pandas as pd
-import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, InputLayer
-from sklearn.preprocessing import MinMaxScaler
 import joblib
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.layers import Dense, InputLayer
+from tensorflow.keras.models import Sequential
 
 # --- تنظیمات ---
-WINDOW_PAST = 20     # تعداد کندل‌های قبلی برای ورودی مدل
-WINDOW_EXOG = 20     # تعداد کندل‌های اندیکاتور قبلی
-FUTURE_STEPS = 5     # تعداد کندل آینده برای پیش‌بینی
+WINDOW_PAST = 20  # تعداد کندل‌های قبلی برای ورودی مدل
+WINDOW_EXOG = 20  # تعداد کندل‌های اندیکاتور قبلی
+FUTURE_STEPS = 5  # تعداد کندل آینده برای پیش‌بینی
 
 # --- لود دیتا و ساخت اندیکاتورهای پایه ---
-df = pd.read_csv("XAUUSD_M15_history.csv")   # یا هر دیتای دلخواه
+df = pd.read_csv("XAUUSD_M15_history.csv")  # یا هر دیتای دلخواه
 
 # اندیکاتورهای نمونه (برای حرفه‌ای‌تر شدن، اندیکاتورهای بیشتری اضافه کن)
 df['ema_20'] = df['close'].ewm(span=20).mean()
@@ -23,10 +23,10 @@ features = []
 targets = []
 
 for i in range(max(WINDOW_PAST, WINDOW_EXOG), len(df) - FUTURE_STEPS):
-    price_past = df['close'].values[i - WINDOW_PAST:i]
-    exog_past = df['ema_cross'].values[i - WINDOW_EXOG:i]
+    price_past = df['close'].values[i - WINDOW_PAST : i]
+    exog_past = df['ema_cross'].values[i - WINDOW_EXOG : i]
     X = np.concatenate([price_past, exog_past])
-    y = df['close'].values[i:i + FUTURE_STEPS]  # 5 قیمت آینده
+    y = df['close'].values[i : i + FUTURE_STEPS]  # 5 قیمت آینده
     features.append(X)
     targets.append(y)
 

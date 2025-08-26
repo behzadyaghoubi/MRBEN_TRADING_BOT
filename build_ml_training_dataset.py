@@ -20,9 +20,15 @@ df["MACD_hist"] = macd_hist
 # تولید سیگنال ساده (مثال: کراس SMA)
 signals = []
 for i in range(1, len(df)):
-    if df["SMA_FAST"].iloc[i] > df["SMA_SLOW"].iloc[i] and df["SMA_FAST"].iloc[i-1] <= df["SMA_SLOW"].iloc[i-1]:
+    if (
+        df["SMA_FAST"].iloc[i] > df["SMA_SLOW"].iloc[i]
+        and df["SMA_FAST"].iloc[i - 1] <= df["SMA_SLOW"].iloc[i - 1]
+    ):
         signals.append("BUY")
-    elif df["SMA_FAST"].iloc[i] < df["SMA_SLOW"].iloc[i] and df["SMA_FAST"].iloc[i-1] >= df["SMA_SLOW"].iloc[i-1]:
+    elif (
+        df["SMA_FAST"].iloc[i] < df["SMA_SLOW"].iloc[i]
+        and df["SMA_FAST"].iloc[i - 1] >= df["SMA_SLOW"].iloc[i - 1]
+    ):
         signals.append("SELL")
     else:
         signals.append("HOLD")
@@ -31,7 +37,22 @@ signals = ["HOLD"] + signals  # اولین کندل چون قبلی نداره
 df["signal"] = signals
 
 # فقط ستون‌های موردنیاز برای آموزش ML را نگه‌دار
-df_ml = df[["time", "open", "high", "low", "close", "SMA_FAST", "SMA_SLOW", "RSI", "MACD", "MACD_signal", "MACD_hist", "signal"]]
+df_ml = df[
+    [
+        "time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "SMA_FAST",
+        "SMA_SLOW",
+        "RSI",
+        "MACD",
+        "MACD_signal",
+        "MACD_hist",
+        "signal",
+    ]
+]
 
 # حذف ردیف‌هایی که اندیکاتور ندارند (NaN)
 df_ml = df_ml.dropna().reset_index(drop=True)

@@ -3,26 +3,26 @@
 Setup script for MR BEN Trading Bot environment configuration.
 """
 
-import os
 import shutil
 from pathlib import Path
+
 
 def setup_environment():
     """Setup environment configuration file."""
     print("MR BEN Trading Bot - Environment Setup")
     print("=" * 50)
-    
+
     # Check if .env already exists
     env_file = Path(".env")
     example_file = Path("env.example")
-    
+
     if env_file.exists():
         print("⚠️  .env file already exists!")
         response = input("Do you want to overwrite it? (y/N): ").lower()
         if response != 'y':
             print("Setup cancelled.")
             return
-    
+
     # Copy example file to .env
     if example_file.exists():
         shutil.copy(example_file, env_file)
@@ -44,5 +44,6 @@ def setup_environment():
         print("❌ env.example file not found!")
         print("Please ensure env.example exists in the project root.")
 
+
 if __name__ == "__main__":
-    setup_environment() 
+    setup_environment()

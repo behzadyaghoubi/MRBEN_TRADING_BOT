@@ -53,4 +53,4 @@
     "backup_retention_days": 30,
     "max_backups": 10
   }
-} 
+}

@@ -1,9 +1,9 @@
 # MR BEN Agent System - Phase 2 & 3 Integration Report
 
-**Date**: August 18, 2025  
-**Version**: 2.0.0  
-**Status**: Production Ready  
-**Author**: AI Assistant  
+**Date**: August 18, 2025
+**Version**: 2.0.0
+**Status**: Production Ready
+**Author**: AI Assistant
 
 ## 1. Executive Summary
 
@@ -91,7 +91,7 @@ The original MR BEN system had several critical limitations:
 
 #### `live_trader_clean.py`
 
-**Path**: `live_trader_clean.py`  
+**Path**: `live_trader_clean.py`
 **Diff Summary**: Major integration of agent system with trading loop
 
 **Key Changes**:
@@ -108,7 +108,7 @@ class _MetricsHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/metrics':
             self.send_metrics()
-    
+
     def send_metrics(self):
         # Implementation for /metrics endpoint
 
@@ -121,7 +121,7 @@ def __init__(self, config, logger, mode="paper"):
     self.predictive_maintenance = None
     self.advanced_alerting = None
     self.dashboard_server = None
-    
+
     # Start dashboard independently
     self.start_dashboard(8765)
 
@@ -149,9 +149,9 @@ def _trading_loop(self):
         'mode': self.mode,
         'agent_mode': self.agent_mode if self.agent else 'none'
     }
-    
+
     decision_card = _dc_from_dict(dc_dict)
-    
+
     # Agent review
     if self.agent:
         act = self.agent.review_and_maybe_execute(decision_card)
@@ -160,15 +160,15 @@ def _trading_loop(self):
             return
 ```
 
-**Reasoning**: Integration of agent supervision system into main trading loop  
-**Risk Level**: Medium - Core trading logic modified  
+**Reasoning**: Integration of agent supervision system into main trading loop
+**Risk Level**: Medium - Core trading logic modified
 **Rollback**: Restore from `live_trader_clean.backup.py`
 
 ### 2.2 Agent System Components
 
 #### `src/agent/bridge.py`
 
-**Path**: `src/agent/bridge.py`  
+**Path**: `src/agent/bridge.py`
 **Diff Summary**: Core agent bridge with decision review and health monitoring
 
 **Key Functions**:
@@ -180,18 +180,18 @@ class AgentBridge:
         self.risk_gate = RiskGate(config)
         self.policy_engine = PolicyEngine(config)
         self.playbook_executor = PlaybookExecutor(config)
-    
+
     def review_and_maybe_execute(self, decision_card: DecisionCard) -> AgentAction:
         """Review trading decision and return action"""
         # Risk gate checks
         spread_ok, spread_msg = self.risk_gate.check_spread_gate(decision_card.spread_pts)
         if not spread_ok:
             return AgentAction("HALT", {}, f"Spread gate: {spread_msg}", "WARN")
-        
+
         # Policy evaluation
         action = self.policy_engine.evaluate_decision(decision_card)
         return action
-    
+
     def on_health_event(self, event: HealthEvent) -> AgentAction:
         """Handle health events and trigger remediation"""
         if self.mode == "auto":
@@ -199,13 +199,13 @@ class AgentBridge:
         return AgentAction("NONE", {}, "Monitoring only", "INFO")
 ```
 
-**Reasoning**: Core agent functionality for decision review and health monitoring  
-**Risk Level**: Low - New component, doesn't affect existing logic  
+**Reasoning**: Core agent functionality for decision review and health monitoring
+**Risk Level**: Low - New component, doesn't affect existing logic
 **Rollback**: Remove agent initialization calls
 
 #### `src/agent/risk_gate.py`
 
-**Path**: `src/agent/risk_gate.py`  
+**Path**: `src/agent/risk_gate.py`
 **Diff Summary**: Advanced risk management with configurable gates
 
 **Key Functions**:
@@ -217,13 +217,13 @@ class AdvancedRiskGate:
         self.max_spread = config.get('max_spread_points', 180)
         self.max_positions = config.get('max_open_trades', 2)
         self.max_daily_loss = config.get('max_daily_loss', 0.02)
-    
+
     def check_spread_gate(self, spread_pts: float) -> tuple[bool, str]:
         """Single source of truth for spread validation"""
         if spread_pts > self.max_spread:
             return False, f"⏸️ Blocked by spread gate: {spread_pts:.1f} > {self.max_spread}"
         return True, "Spread OK"
-    
+
     def check_exposure_gate(self, open_positions: int, daily_loss: float) -> tuple[bool, str]:
         """Position and loss exposure validation"""
         if open_positions >= self.max_positions:
@@ -233,13 +233,13 @@ class AdvancedRiskGate:
         return True, "Exposure OK"
 ```
 
-**Reasoning**: Centralized risk management replacing scattered checks  
-**Risk Level**: Low - New component, improves safety  
+**Reasoning**: Centralized risk management replacing scattered checks
+**Risk Level**: Low - New component, improves safety
 **Rollback**: Remove risk gate calls, restore old logic
 
 #### `src/agent/advanced_playbooks.py`
 
-**Path**: `src/agent/advanced_playbooks.py`  
+**Path**: `src/agent/advanced_playbooks.py`
 **Diff Summary**: Automated remediation procedures for common failures
 
 **Key Playbooks**:
@@ -248,7 +248,7 @@ class AdvancedPlaybooks:
     def __init__(self, config: Dict[str, Any], logger):
         self.config = config
         self.logger = logger
-    
+
     def RESTART_MT5(self, context: Dict[str, Any]) -> bool:
         """Restart MT5 connection with exponential backoff"""
         try:
@@ -261,7 +261,7 @@ class AdvancedPlaybooks:
         except Exception as e:
             self.logger.error(f"❌ MT5 restart failed: {e}")
         return False
-    
+
     def MEM_CLEANUP(self, context: Dict[str, Any]) -> bool:
         """Memory cleanup and garbage collection"""
         try:
@@ -272,7 +272,7 @@ class AdvancedPlaybooks:
         except Exception as e:
             self.logger.error(f"❌ Memory cleanup failed: {e}")
         return False
-    
+
     def SPREAD_ADAPT(self, context: Dict[str, Any]) -> bool:
         """Temporarily adjust spread threshold for market conditions"""
         current_spread = context.get('current_spread', 0)
@@ -284,15 +284,15 @@ class AdvancedPlaybooks:
         return False
 ```
 
-**Reasoning**: Automated recovery procedures for production reliability  
-**Risk Level**: Medium - Can affect system behavior  
+**Reasoning**: Automated recovery procedures for production reliability
+**Risk Level**: Medium - Can affect system behavior
 **Rollback**: Disable auto mode, set agent.mode to "guard"
 
 ### 2.3 Dashboard & Monitoring
 
 #### `src/agent/dashboard.py`
 
-**Path**: `src/agent/dashboard.py`  
+**Path**: `src/agent/dashboard.py`
 **Diff Summary**: Local HTTP server for real-time system monitoring
 
 **Key Features**:
@@ -311,12 +311,12 @@ class DashboardIntegration:
             'memory_usage_mb': 0.0,
             'last_health_event': None
         }
-    
+
     def start_dashboard(self, port: int = None):
         """Start HTTP server for metrics endpoint"""
         if port:
             self.port = port
-        
+
         try:
             self.server = HTTPServer(('localhost', self.port), MetricsHandler)
             self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -324,15 +324,15 @@ class DashboardIntegration:
             self.logger.info(f"🚀 Dashboard started on port {self.port}")
         except Exception as e:
             self.logger.error(f"❌ Dashboard failed to start: {e}")
-    
+
     def update_metrics(self, **kwargs):
         """Update system metrics"""
         self.metrics.update(kwargs)
         self.metrics['timestamp'] = datetime.now().isoformat()
 ```
 
-**Reasoning**: Real-time monitoring and metrics collection  
-**Risk Level**: Low - Read-only monitoring  
+**Reasoning**: Real-time monitoring and metrics collection
+**Risk Level**: Low - Read-only monitoring
 **Rollback**: Stop dashboard server, remove metrics collection
 
 ## 3. Data Contracts & APIs
@@ -391,7 +391,7 @@ decision_card = DecisionCard(
 )
 ```
 
-**Mapping Rules**: 
+**Mapping Rules**:
 - `_dc_from_dict()` function safely converts dictionaries to DecisionCard instances
 - Agent consumes DecisionCard attributes directly (e.g., `decision_card.spread_pts`)
 - All trading decisions flow through this standardized contract
@@ -537,7 +537,7 @@ def check_exposure_gate(self, open_positions: int, daily_loss: float) -> tuple[b
     return True, "Exposure OK"
 ```
 
-**Thresholds**: 
+**Thresholds**:
 - `max_open_trades`: 2 (configurable)
 - `max_daily_loss`: 0.02 (2% daily loss limit)
 
@@ -574,81 +574,81 @@ def check_regime_gate(self, regime_label: str, adj_conf: float) -> tuple[bool, s
 
 ### 5.1 RESTART_MT5
 
-**Purpose**: Restart MT5 connection when connection issues occur  
-**Preconditions**: MT5 connection timeout or error  
+**Purpose**: Restart MT5 connection when connection issues occur
+**Preconditions**: MT5 connection timeout or error
 **Steps**:
 1. Gracefully shutdown MT5
 2. Wait 2 seconds for cleanup
 3. Reinitialize connection
 4. Verify connection status
 
-**Postconditions**: MT5 connection restored or failure logged  
-**Idempotency**: Safe to call multiple times  
-**Safety**: Won't affect open positions or orders  
+**Postconditions**: MT5 connection restored or failure logged
+**Idempotency**: Safe to call multiple times
+**Safety**: Won't affect open positions or orders
 **Logs**: "✅ MT5 restarted successfully" or "❌ MT5 restart failed: {error}"
 
 ### 5.2 MEM_CLEANUP
 
-**Purpose**: Free memory when usage exceeds thresholds  
-**Preconditions**: Memory usage > 1500MB  
+**Purpose**: Free memory when usage exceeds thresholds
+**Preconditions**: Memory usage > 1500MB
 **Steps**:
 1. Force garbage collection
 2. Clear Python object caches
 3. Log memory usage before/after
 
-**Postconditions**: Memory usage reduced  
-**Idempotency**: Safe to call multiple times  
-**Safety**: Won't affect trading state or data  
+**Postconditions**: Memory usage reduced
+**Idempotency**: Safe to call multiple times
+**Safety**: Won't affect trading state or data
 **Logs**: "✅ Memory cleanup completed" or "❌ Memory cleanup failed: {error}"
 
 ### 5.3 RELOGIN_MT5
 
-**Purpose**: Re-authenticate with MT5 server  
-**Preconditions**: Authentication timeout or session expiry  
+**Purpose**: Re-authenticate with MT5 server
+**Preconditions**: Authentication timeout or session expiry
 **Steps**:
 1. Disconnect current session
 2. Re-authenticate with credentials
 3. Verify account access
 
-**Postconditions**: Fresh MT5 session established  
-**Idempotency**: Safe to call multiple times  
-**Safety**: Won't affect open positions  
+**Postconditions**: Fresh MT5 session established
+**Idempotency**: Safe to call multiple times
+**Safety**: Won't affect open positions
 **Logs**: "✅ MT5 re-authentication successful" or "❌ MT5 re-authentication failed: {error}"
 
 ### 5.4 SPREAD_ADAPT
 
-**Purpose**: Temporarily adjust spread thresholds for market conditions  
-**Preconditions**: Current spread > max_spread_points  
+**Purpose**: Temporarily adjust spread thresholds for market conditions
+**Preconditions**: Current spread > max_spread_points
 **Steps**:
 1. Calculate temporary threshold (current * 1.2, max 500)
 2. Apply temporary threshold
 3. Schedule reversion after 30 minutes
 
-**Postconditions**: Trading continues with adjusted thresholds  
-**Idempotency**: Won't stack multiple adjustments  
-**Safety**: Won't permanently change configuration  
+**Postconditions**: Trading continues with adjusted thresholds
+**Idempotency**: Won't stack multiple adjustments
+**Safety**: Won't permanently change configuration
 **Logs**: "🔄 Temporarily adjusting spread threshold to {threshold}"
 
 ### 5.5 ORDER_RETRY_SMART
 
-**Purpose**: Retry failed orders with exponential backoff  
-**Preconditions**: Order execution failure  
+**Purpose**: Retry failed orders with exponential backoff
+**Preconditions**: Order execution failure
 **Steps**:
 1. Wait 5 seconds (initial delay)
 2. Retry order execution
 3. Double delay on subsequent failures
 4. HALT after 3 attempts
 
-**Postconditions**: Order executed or system halted  
-**Idempotency**: Won't create duplicate orders  
-**Safety**: Won't exceed position limits  
+**Postconditions**: Order executed or system halted
+**Idempotency**: Won't create duplicate orders
+**Safety**: Won't exceed position limits
 **Logs**: "🔄 Retrying order execution (attempt {n}/3)" or "❌ Order retry failed, halting system"
 
 ## 6. ML Ensemble Integration
 
 ### 6.1 ML Probability Computation
 
-**Model Paths**: 
+**Model Paths**:
 - LSTM: `models/advanced_lstm_model.h5`
 - Scaler: `models/advanced_lstm_scaler.save`
 - ML Filter: `models/ml_filter_model.joblib`
@@ -662,7 +662,7 @@ def check_regime_gate(self, regime_label: str, adj_conf: float) -> tuple[bool, s
 ```python
 def _generate_signal(self, bars_df):
     # ... existing SMA logic ...
-    
+
     # ML Ensemble integration
     if self.ml_integration and self.config.get('advanced', {}).get('use_ai_ensemble', False):
         try:
@@ -679,8 +679,8 @@ def _generate_signal(self, bars_df):
 
 ### 6.2 Combination Logic
 
-**Base Signal**: SMA crossover remains the foundation  
-**Confidence Blending**: 
+**Base Signal**: SMA crossover remains the foundation
+**Confidence Blending**:
 - SMA confidence: 60% weight
 - AI confidence: 40% weight (when available)
 - Final confidence: `(0.6 * sma_conf) + (0.4 * ai_conf)`
@@ -706,8 +706,8 @@ def _generate_signal(self, bars_df):
 
 ### 7.1 Startup Flow
 
-**Independent from Agent**: Dashboard starts in `MT5LiveTrader.__init__` regardless of agent status  
-**Port**: 8765 (configurable via `dashboard.port`)  
+**Independent from Agent**: Dashboard starts in `MT5LiveTrader.__init__` regardless of agent status
+**Port**: 8765 (configurable via `dashboard.port`)
 **Binding**: `localhost` only (no external access)
 
 **Startup Code**:
@@ -765,19 +765,19 @@ def start_dashboard(self, port: int = 8765):
 
 ### 7.3 Thread-Safety & Performance
 
-**Thread-Safety**: 
+**Thread-Safety**:
 - Metrics updates use thread-safe dictionary operations
 - HTTP server runs in separate daemon thread
 - No blocking operations in metrics collection
 
-**Performance**: 
+**Performance**:
 - Metrics collection: <1ms per cycle
 - HTTP response: <5ms for /metrics endpoint
 - Memory overhead: <1MB for dashboard
 
 ### 7.4 Troubleshooting
 
-**Port Conflicts**: 
+**Port Conflicts**:
 ```bash
 # Check if port is in use
 netstat -an | findstr :8765
@@ -978,6 +978,6 @@ curl http://127.0.0.1:8765/metrics
 
 ---
 
-**Report Status**: ✅ COMPLETE  
-**Next Review**: Phase 4 planning (Advanced ML Models & Multi-Symbol Support)  
+**Report Status**: ✅ COMPLETE
+**Next Review**: Phase 4 planning (Advanced ML Models & Multi-Symbol Support)
 **Handoff Ready**: Yes - All components documented and tested

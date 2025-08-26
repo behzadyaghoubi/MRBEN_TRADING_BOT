@@ -1,6 +1,7 @@
-import pandas as pd
 import numpy as np
-from lstm_trading_system_pro import TradingConfig, DataPreprocessor
+import pandas as pd
+
+from lstm_trading_system_pro import DataPreprocessor, TradingConfig
 
 # فایل ورودی و خروجی
 INPUT_CSV = "ai_trading_results.csv"
@@ -23,4 +24,4 @@ X, y = preprocessor.create_sequences(prepared_df)
 # ذخیره خروجی
 np.save(X_OUT, X)
 np.save(y_OUT, y)
-print(f"✅ X shape: {X.shape}, y shape: {y.shape} ذخیره شد!") 
+print(f"✅ X shape: {X.shape}, y shape: {y.shape} ذخیره شد!")

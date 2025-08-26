@@ -16,11 +16,29 @@ for idx, row in trades.iterrows():
     # بررسی آیا معامله بسته شده و سود/زیان باید محاسبه شود
     if last_buy and row['signal'] == 'SELL':
         profit = row['price'] - float(last_buy[1])
-        results.append({'open_time': last_buy[0], 'close_time': row['time'], 'direction': 'BUY', 'entry': last_buy[1], 'exit': row['price'], 'result': profit})
+        results.append(
+            {
+                'open_time': last_buy[0],
+                'close_time': row['time'],
+                'direction': 'BUY',
+                'entry': last_buy[1],
+                'exit': row['price'],
+                'result': profit,
+            }
+        )
         last_buy = None
     elif last_sell and row['signal'] == 'BUY':
         profit = float(last_sell[1]) - row['price']
-        results.append({'open_time': last_sell[0], 'close_time': row['time'], 'direction': 'SELL', 'entry': last_sell[1], 'exit': row['price'], 'result': profit})
+        results.append(
+            {
+                'open_time': last_sell[0],
+                'close_time': row['time'],
+                'direction': 'SELL',
+                'entry': last_sell[1],
+                'exit': row['price'],
+                'result': profit,
+            }
+        )
         last_sell = None
 
 # تبدیل به DataFrame

@@ -1,6 +1,3 @@
-import pandas as pd
-import numpy as np
-
 def mean_reversion_strategy(df, lookback=20, entry_threshold=2.0):
     """
     Mean Reversion Strategy inspired by Ernest Chan
@@ -21,4 +18,4 @@ def mean_reversion_strategy(df, lookback=20, entry_threshold=2.0):
     else:
         signal = 0  # Hold
 
-    return signal 
+    return signal

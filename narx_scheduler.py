@@ -1,9 +1,10 @@
-import pandas as pd
-import numpy as np
-from sklearn.neural_network import MLPRegressor
 from datetime import datetime
+
 import MetaTrader5 as mt5
-import os
+import numpy as np
+import pandas as pd
+from sklearn.neural_network import MLPRegressor
+
 
 # دریافت دیتا از متاتریدر
 def get_price_data(symbol="XAUUSD", timeframe=mt5.TIMEFRAME_M5, bars=200):
@@ -16,14 +17,16 @@ def get_price_data(symbol="XAUUSD", timeframe=mt5.TIMEFRAME_M5, bars=200):
     df["price"] = df["close"]
     return df
 
+
 # ساخت داده ورودی برای NARX
 def prepare_narx_data(df, input_lags=5, output_steps=5):
     prices = df["price"].values
     X, y = [], []
     for i in range(input_lags, len(prices) - output_steps):
-        X.append(prices[i - input_lags:i])
-        y.append(prices[i:i + output_steps])
+        X.append(prices[i - input_lags : i])
+        y.append(prices[i : i + output_steps])
     return np.array(X), np.array(y)
+
 
 # آموزش یا پیش‌بینی مدل
 def train_and_predict_narx(df):
@@ -34,15 +37,19 @@ def train_and_predict_narx(df):
     prediction = model.predict(last_input)[0]
     return prediction
 
+
 # ذخیره پیش‌بینی
 def save_prediction(prediction, file_path="narx_predictions.csv"):
     now = datetime.now()
-    df = pd.DataFrame({
-        "time": [now + pd.Timedelta(minutes=5*i) for i in range(len(prediction))],
-        "predicted_price": prediction
-    })
+    df = pd.DataFrame(
+        {
+            "time": [now + pd.Timedelta(minutes=5 * i) for i in range(len(prediction))],
+            "predicted_price": prediction,
+        }
+    )
     df.to_csv(file_path, index=False)
     print(f"✅ پیش‌بینی NARX ذخیره شد: {file_path}")
+
 
 # اجرای کامل
 def run_narx_forecast():
@@ -53,6 +60,7 @@ def run_narx_forecast():
     if df is not None:
         prediction = train_and_predict_narx(df)
         save_prediction(prediction)
+
 
 if __name__ == "__main__":
     run_narx_forecast()

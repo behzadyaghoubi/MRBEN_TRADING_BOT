@@ -21,17 +21,17 @@ loss_trades = 0
 
 for i in range(1, len(df)):
     price = df['close'].iloc[i]
-    signal = df['lstm_signal'].iloc[i-1]
+    signal = df['lstm_signal'].iloc[i - 1]
 
     if position is None:
         if signal == 1:
-            entry_price = df['close'].iloc[i-1]
+            entry_price = df['close'].iloc[i - 1]
             sl = entry_price - stop_loss_pips * pip_value
             tp = entry_price + take_profit_pips * pip_value
             lots = (balance * risk_per_trade) / (stop_loss_pips * pip_value)
             position = 'long'
         elif signal == 0:
-            entry_price = df['close'].iloc[i-1]
+            entry_price = df['close'].iloc[i - 1]
             sl = entry_price + stop_loss_pips * pip_value
             tp = entry_price - take_profit_pips * pip_value
             lots = (balance * risk_per_trade) / (stop_loss_pips * pip_value)
@@ -70,6 +70,6 @@ if len(equity_curve) < len(df):
 df['equity'] = equity_curve
 df.to_csv('ai_trading_results.csv', index=False)
 
-print(f"✅ بک‌تست انجام شد و ذخیره شد.")
+print("✅ بک‌تست انجام شد و ذخیره شد.")
 print(f"Win trades: {win_trades} | Loss trades: {loss_trades}")
 print(f"Max Equity: {df['equity'].max()} | Final Equity: {df['equity'].iloc[-1]}")

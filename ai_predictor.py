@@ -1,6 +1,7 @@
-import pandas as pd
-import joblib
 import json
+
+import joblib
+import pandas as pd
 
 # بارگذاری مدل
 model = joblib.load("ai_signal_model.pkl")
@@ -10,12 +11,16 @@ with open("latest_signal.json") as f:
     signal = json.load(f)
 
 # ساخت دیتافریم برای پیش‌بینی
-features = pd.DataFrame([{
-    'confidence': signal.get('confidence', 50),
-    'rsi': signal.get('rsi', 50),
-    'macd': signal.get('macd', 0),
-    'z_score': signal.get('z_score', 0)
-}])
+features = pd.DataFrame(
+    [
+        {
+            'confidence': signal.get('confidence', 50),
+            'rsi': signal.get('rsi', 50),
+            'macd': signal.get('macd', 0),
+            'z_score': signal.get('z_score', 0),
+        }
+    ]
+)
 
 # پیش‌بینی احتمال موفقیت سیگنال
 prob = model.predict_proba(features)[0][1] * 100

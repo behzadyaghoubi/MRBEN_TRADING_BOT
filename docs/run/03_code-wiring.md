@@ -49,12 +49,12 @@ if __name__ == "__main__":
 def main():
     parser = build_arg_parser()
     args = parser.parse_args()
-    
+
     # Handle paper as alias for live --mode paper
     if args.cmd == "paper":
         args.cmd = "live"
         args.mode = "paper"
-    
+
     # Execute appropriate command
     if args.cmd == "live":
         return cmd_live(args)

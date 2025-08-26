@@ -60,16 +60,16 @@ def _update_trailing_stops(self):
 ```python
 class AgentBridge:
     """Simple agent bridge for basic supervision"""
-    
+
     def __init__(self, config: Dict[str, Any], mode: str = "guard"):
         self.config = config
         self.mode = mode
         self.logger = logging.getLogger(f"AgentBridge")
-    
+
     def review_and_maybe_execute(self, decision_card, context):
         """Review trading decision and optionally modify"""
         # Implementation details...
-    
+
     def on_health_event(self, event: Dict[str, Any]):
         """Handle health events from the trading system"""
         # Implementation details...

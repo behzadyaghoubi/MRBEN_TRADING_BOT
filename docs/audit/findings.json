@@ -66,7 +66,7 @@
     },
     {
       "finding": "Comprehensive risk gates",
-      "impact": "HIGH", 
+      "impact": "HIGH",
       "description": "Multiple layers of protection (spread, exposure, conformal)"
     },
     {
@@ -95,7 +95,7 @@
     {
       "finding": "Limited AI integration",
       "impact": "MEDIUM",
-      "likelihood": "HIGH", 
+      "likelihood": "HIGH",
       "description": "ML ensemble not fully utilized"
     },
     {
@@ -120,7 +120,7 @@
   "recommendations": {
     "immediate": [
       "Enable ML ensemble for dynamic confidence scoring",
-      "Add volatility-based confidence adjustment", 
+      "Add volatility-based confidence adjustment",
       "Implement ATR-based position sizing"
     ],
     "near_term": [

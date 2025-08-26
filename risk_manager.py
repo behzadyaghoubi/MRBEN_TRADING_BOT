@@ -1,8 +1,10 @@
 import logging
-import numpy as np
+
 import MetaTrader5 as mt5
+import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr
+
 
 class RiskManager:
     def __init__(
@@ -16,7 +18,7 @@ class RiskManager:
         dynamic_sensitivity=0.5,
         correlation_threshold=0.8,
         atr_period=14,
-        sl_multiplier=1.5
+        sl_multiplier=1.5,
     ):
         self.base_risk = base_risk
         self.min_lot = min_lot
@@ -30,7 +32,9 @@ class RiskManager:
         self.sl_multiplier = sl_multiplier
         self.logger = logging.getLogger("RiskManager")
 
-    def calc_lot_size(self, symbol, balance, stop_loss_pips, pip_value, open_trades, start_balance, atr=None):
+    def calc_lot_size(
+        self, symbol, balance, stop_loss_pips, pip_value, open_trades, start_balance, atr=None
+    ):
         if self.dynamic and atr:
             risk_fraction = min(1, self.dynamic_sensitivity * atr / stop_loss_pips)
         else:

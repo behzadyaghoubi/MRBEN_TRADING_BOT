@@ -1,1 +1,1 @@
-# Advanced Strategy Module 
+# Advanced Strategy Module

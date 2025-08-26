@@ -18,7 +18,7 @@ Local monitoring setup with Prometheus adapter and Grafana dashboard for MR BEN 
 
 ### 2. Prometheus Configuration
 - **File**: `docs/ops/prometheus.yml`
-- **Targets**: 
+- **Targets**:
   - MR BEN Prometheus adapter (port 9100)
   - MR BEN Dashboard (port 8765)
 - **Scrape Interval**: 15s for adapter, 30s for dashboard
@@ -132,5 +132,5 @@ python live_trader_clean.py --mode live --config config/pro_config.json --log-le
 4. Create performance dashboards
 
 ---
-**Status**: ✅ Monitoring Setup Complete  
+**Status**: ✅ Monitoring Setup Complete
 **Next**: Portfolio Expansion (Phase 4)

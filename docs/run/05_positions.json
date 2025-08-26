@@ -2,9 +2,9 @@
   "timestamp": "2025-08-18",
   "test_phase": "live_trading",
   "status": "ready_to_capture",
-  
+
   "verification_command": "import MetaTrader5 as mt5; mt5.initialize(); print(mt5.positions_get(symbol='XAUUSD.PRO')); mt5.shutdown()",
-  
+
   "expected_data": {
     "symbol": "XAUUSD.PRO",
     "ticket": "position_ticket_number",
@@ -17,7 +17,7 @@
     "swap": "swap_charges",
     "time": "position_open_time"
   },
-  
+
   "verification_steps": [
     "1. Check if positions exist after trade execution",
     "2. Verify SL/TP values match ATR calculations",
@@ -25,7 +25,7 @@
     "4. Validate position type matches signal direction",
     "5. Check profit/loss tracking"
   ],
-  
+
   "live_positions": [],
   "notes": "To be populated after first live trade execution"
 }

@@ -57,7 +57,7 @@ Ensure `config.json` has:
 {
   "DEMO_MODE": false,
   "LOGIN": "your_mt5_login",
-  "PASSWORD": "your_mt5_password", 
+  "PASSWORD": "your_mt5_password",
   "SERVER": "your_mt5_server",
   "SYMBOL": "XAUUSD.PRO",
   "dashboard": {
@@ -171,7 +171,7 @@ When running successfully, you should see:
 ❌ Production preflight failed: symbol_select failed: XAUUSD.PRO
 ```
 
-**Solution**: 
+**Solution**:
 - Verify symbol exists in your MT5 terminal
 - Check symbol name spelling
 - Ensure market is open

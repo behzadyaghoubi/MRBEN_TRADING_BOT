@@ -39,4 +39,3 @@
 \- Logging:
 
 &nbsp; - Structured logging; CSV/SQLite optional via config flags
-

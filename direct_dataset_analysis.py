@@ -1,46 +1,45 @@
 import pandas as pd
-import numpy as np
-import os
+
 
 def direct_dataset_analysis():
     """Direct analysis of synthetic dataset without terminal commands."""
     print("🚀 تحلیل مستقیم دیتاست مصنوعی")
     print("=" * 50)
-    
+
     try:
         # Load synthetic dataset
         print("\n1. بارگذاری دیتاست مصنوعی...")
         df = pd.read_csv('data/mrben_ai_signal_dataset_synthetic_balanced.csv')
-        
+
         # Count signals
         print("\n2. شمارش سیگنال‌ها...")
         buy_count = len(df[df['signal'] == 'BUY'])
         sell_count = len(df[df['signal'] == 'SELL'])
         hold_count = len(df[df['signal'] == 'HOLD'])
         total_count = len(df)
-        
+
         print(f"   کل نمونه‌ها: {total_count}")
         print(f"   BUY: {buy_count} ({buy_count/total_count*100:.1f}%)")
         print(f"   SELL: {sell_count} ({sell_count/total_count*100:.1f}%)")
         print(f"   HOLD: {hold_count} ({hold_count/total_count*100:.1f}%)")
-        
+
         # Check balance
         print("\n3. بررسی تعادل...")
         if buy_count > 0 and sell_count > 0:
             ratio = buy_count / sell_count
             print(f"   نسبت BUY/SELL: {ratio:.2f}")
-            
+
             if 0.8 <= ratio <= 1.2:
                 print("   ✅ توزیع BUY/SELL متعادل است")
             else:
                 print("   ⚠️ توزیع BUY/SELL نامتعادل است")
-        
+
         # Compare with original
         print("\n4. مقایسه با دیتاست اصلی...")
         original_hold = 97.7
         improvement = original_hold - (hold_count / total_count * 100)
         print(f"   بهبود: {improvement:.1f}% کاهش غلبه HOLD")
-        
+
         # Check if ready for LSTM training
         print("\n5. بررسی آمادگی برای بازآموزی LSTM...")
         if buy_count > 0 and sell_count > 0:
@@ -48,23 +47,24 @@ def direct_dataset_analysis():
             create_lstm_training_script()
         else:
             print("   ❌ دیتاست برای بازآموزی LSTM مناسب نیست")
-        
+
         # Summary
         print("\n6. خلاصه:")
         print(f"   ✅ دیتاست مصنوعی با {total_count} نمونه ایجاد شد")
         print(f"   ✅ توزیع متعادل BUY/SELL: {buy_count}/{sell_count}")
-        print(f"   ✅ بهبود قابل توجه نسبت به دیتاست اصلی")
-        
+        print("   ✅ بهبود قابل توجه نسبت به دیتاست اصلی")
+
         return True
-        
+
     except Exception as e:
         print(f"❌ خطا: {e}")
         return False
 
+
 def create_lstm_training_script():
     """Create LSTM training script."""
     print("\n📋 ایجاد اسکریپت بازآموزی LSTM:")
-    
+
     script_content = '''import pandas as pd
 import numpy as np
 from tensorflow.keras.models import Sequential
@@ -164,7 +164,7 @@ def train_lstm_with_synthetic_data():
 if __name__ == "__main__":
     train_lstm_with_synthetic_data()
 '''
-    
+
     try:
         with open('train_lstm_balanced.py', 'w', encoding='utf-8') as f:
             f.write(script_content)
@@ -172,6 +172,7 @@ if __name__ == "__main__":
         print("   📋 حالا می‌توانید LSTM را بازآموزی کنید")
     except Exception as e:
         print(f"   ❌ خطا در ایجاد اسکریپت: {e}")
+
 
 def create_next_steps_guide():
     """Create next steps guide."""
@@ -215,7 +216,7 @@ python live_trader_clean.py
 - از Command Prompt استفاده کنید
 - سیستم را Restart کنید
 '''
-    
+
     try:
         with open('NEXT_STEPS.md', 'w', encoding='utf-8') as f:
             f.write(guide_content)
@@ -223,17 +224,18 @@ python live_trader_clean.py
     except Exception as e:
         print(f"   ❌ خطا در ایجاد راهنما: {e}")
 
+
 if __name__ == "__main__":
     success = direct_dataset_analysis()
-    
+
     if success:
         print("\n🎉 تحلیل دیتاست موفق بود!")
         print("دیتاست مصنوعی آماده برای بازآموزی LSTM است.")
         create_next_steps_guide()
     else:
         print("\n❌ تحلیل دیتاست ناموفق بود!")
-    
+
     print("\n📋 فایل‌های ایجاد شده:")
     print("   - train_lstm_balanced.py (بازآموزی LSTM)")
     print("   - NEXT_STEPS.md (راهنمای مراحل بعدی)")
-    print("=" * 50) 
+    print("=" * 50)

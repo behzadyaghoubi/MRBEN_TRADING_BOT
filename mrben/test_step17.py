@@ -4,47 +4,48 @@ MR BEN - STEP17 Test Script
 Final Integration & Testing - System Integrator and Complete System
 """
 
-import sys
-import os
 import json
-import time
-import threading
-from datetime import datetime, timezone
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+
 def test_step17_final_integration():
     """Test STEP17: Final Integration & Testing"""
-    
+
     print("=" * 80)
     print("STEP17: Final Integration & Testing")
     print("=" * 80)
-    
+
     test_results = {
         "step": "STEP17",
         "component": "Final Integration & Testing",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "tests": {},
-        "overall_status": "PENDING"
+        "overall_status": "PENDING",
     }
-    
+
     # Test 1: System Integrator Import
     print("\n1. Testing System Integrator Import...")
     try:
         from core.system_integrator import (
-            SystemIntegrator, SystemStatus, ComponentStatus, 
-            SystemHealth, IntegrationTest
+            ComponentStatus,
+            SystemHealth,
+            SystemIntegrator,
+            SystemStatus,
         )
+
         test_results["tests"]["system_integrator_import"] = "PASSED"
         print("✓ System Integrator components imported successfully")
     except Exception as e:
         test_results["tests"]["system_integrator_import"] = "ERROR"
         print(f"✗ System Integrator import error: {e}")
-    
+
     # Test 2: Mock Configuration Setup
     print("\n2. Testing Mock Configuration Setup...")
     try:
@@ -53,32 +54,34 @@ def test_step17_final_integration():
         mock_config.config = {
             'logging': {'level': 'INFO'},
             'position': {'max_positions': 10},
-            'risk': {'max_exposure': 0.5}
+            'risk': {'max_exposure': 0.5},
         }
-        
+
         # Mock config file
         config_dir = Path("config")
         config_dir.mkdir(exist_ok=True)
-        
+
         mock_config_path = config_dir / "config.yaml"
         with open(mock_config_path, 'w') as f:
-            f.write("logging:\n  level: INFO\nposition:\n  max_positions: 10\nrisk:\n  max_exposure: 0.5\n")
-        
+            f.write(
+                "logging:\n  level: INFO\nposition:\n  max_positions: 10\nrisk:\n  max_exposure: 0.5\n"
+            )
+
         test_results["tests"]["mock_config_setup"] = "PASSED"
         print("✓ Mock configuration setup successful")
         print(f"  - Config file created: {mock_config_path}")
-        
+
     except Exception as e:
         test_results["tests"]["mock_config_setup"] = "ERROR"
         print(f"✗ Mock configuration setup error: {e}")
-    
+
     # Test 3: System Integrator Initialization
     print("\n3. Testing System Integrator Initialization...")
     try:
         if 'SystemIntegrator' in locals():
             # Create system integrator with mock config
             integrator = SystemIntegrator("config/config.yaml")
-            
+
             # Check initialization
             if integrator.status in [SystemStatus.RUNNING, SystemStatus.INITIALIZING]:
                 test_results["tests"]["integrator_initialization"] = "PASSED"
@@ -92,20 +95,23 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["integrator_initialization"] = "SKIPPED"
             print("- Integrator initialization test skipped (class not available)")
-            
+
     except Exception as e:
         test_results["tests"]["integrator_initialization"] = "ERROR"
         print(f"✗ Integrator initialization error: {e}")
-    
+
     # Test 4: Component Status Verification
     print("\n4. Testing Component Status Verification...")
     try:
         if 'integrator' in locals():
             # Check component status
-            online_components = sum(1 for status in integrator.component_status.values() 
-                                  if status == ComponentStatus.ONLINE)
+            online_components = sum(
+                1
+                for status in integrator.component_status.values()
+                if status == ComponentStatus.ONLINE
+            )
             total_components = len(integrator.component_status)
-            
+
             if online_components > 0:
                 test_results["tests"]["component_status_verification"] = "PASSED"
                 print("✓ Component status verification successful")
@@ -117,18 +123,18 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["component_status_verification"] = "SKIPPED"
             print("- Component status verification skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["component_status_verification"] = "ERROR"
         print(f"✗ Component status verification error: {e}")
-    
+
     # Test 5: System Health Check
     print("\n5. Testing System Health Check...")
     try:
         if 'integrator' in locals():
             # Perform health check
             health = integrator._check_system_health()
-            
+
             if isinstance(health, SystemHealth):
                 test_results["tests"]["system_health_check"] = "PASSED"
                 print("✓ System health check successful")
@@ -141,11 +147,11 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["system_health_check"] = "SKIPPED"
             print("- System health check skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["system_health_check"] = "ERROR"
         print(f"✗ System health check error: {e}")
-    
+
     # Test 6: Integration Tests
     print("\n6. Testing Integration Tests...")
     try:
@@ -154,7 +160,7 @@ def test_step17_final_integration():
             if integrator.test_results:
                 passed_tests = sum(1 for test in integrator.test_results if test.status == "PASSED")
                 total_tests = len(integrator.test_results)
-                
+
                 test_results["tests"]["integration_tests"] = "PASSED"
                 print("✓ Integration tests completed")
                 print(f"  - Passed tests: {passed_tests}/{total_tests}")
@@ -165,18 +171,18 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["integration_tests"] = "SKIPPED"
             print("- Integration tests skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["integration_tests"] = "ERROR"
         print(f"✗ Integration tests error: {e}")
-    
+
     # Test 7: System Status Retrieval
     print("\n7. Testing System Status Retrieval...")
     try:
         if 'integrator' in locals():
             # Get system status
             status = integrator.get_system_status()
-            
+
             if isinstance(status, dict) and 'system_status' in status:
                 test_results["tests"]["system_status_retrieval"] = "PASSED"
                 print("✓ System status retrieval successful")
@@ -189,11 +195,11 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["system_status_retrieval"] = "SKIPPED"
             print("- System status retrieval skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["system_status_retrieval"] = "ERROR"
         print(f"✗ System status retrieval error: {e}")
-    
+
     # Test 8: System Control Operations
     print("\n8. Testing System Control Operations...")
     try:
@@ -203,7 +209,7 @@ def test_step17_final_integration():
                 pause_success = integrator.pause_system()
                 if pause_success:
                     print("✓ System pause successful")
-                    
+
                     # Test resume operation
                     resume_success = integrator.resume_system()
                     if resume_success:
@@ -221,18 +227,18 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["system_control_operations"] = "SKIPPED"
             print("- System control operations skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["system_control_operations"] = "ERROR"
         print(f"✗ System control operations error: {e}")
-    
+
     # Test 9: System Diagnostic
     print("\n9. Testing System Diagnostic...")
     try:
         if 'integrator' in locals():
             # Run diagnostic
             diagnostic = integrator.run_diagnostic()
-            
+
             if isinstance(diagnostic, dict) and 'system_status' in diagnostic:
                 test_results["tests"]["system_diagnostic"] = "PASSED"
                 print("✓ System diagnostic successful")
@@ -245,11 +251,11 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["system_diagnostic"] = "SKIPPED"
             print("- System diagnostic skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["system_diagnostic"] = "ERROR"
         print(f"✗ System diagnostic error: {e}")
-    
+
     # Test 10: Performance Metrics
     print("\n10. Testing Performance Metrics...")
     try:
@@ -266,11 +272,11 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["performance_metrics"] = "SKIPPED"
             print("- Performance metrics test skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["performance_metrics"] = "ERROR"
         print(f"✗ Performance metrics error: {e}")
-    
+
     # Test 11: Context Manager
     print("\n11. Testing Context Manager...")
     try:
@@ -279,20 +285,20 @@ def test_step17_final_integration():
             with SystemIntegrator("config/config.yaml") as test_integrator:
                 if test_integrator.status in [SystemStatus.RUNNING, SystemStatus.INITIALIZING]:
                     print("✓ Context manager entry successful")
-                    
+
                     # Context manager will automatically call stop_system on exit
                     pass
-            
+
             test_results["tests"]["context_manager"] = "PASSED"
             print("✓ Context manager exit successful")
         else:
             test_results["tests"]["context_manager"] = "SKIPPED"
             print("- Context manager test skipped (class not available)")
-            
+
     except Exception as e:
         test_results["tests"]["context_manager"] = "ERROR"
         print(f"✗ Context manager error: {e}")
-    
+
     # Test 12: Complete System Integration
     print("\n12. Testing Complete System Integration...")
     try:
@@ -317,9 +323,9 @@ def test_step17_final_integration():
             ('advanced_position', 'AdvancedPositionManager'),
             ('advanced_market', 'AdvancedMarketAnalyzer'),
             ('advanced_signals', 'AdvancedSignalGenerator'),
-            ('advanced_portfolio', 'AdvancedPortfolioManager')
+            ('advanced_portfolio', 'AdvancedPortfolioManager'),
         ]
-        
+
         imported_components = 0
         for module_name, class_name in component_imports:
             try:
@@ -330,26 +336,28 @@ def test_step17_final_integration():
                     print(f"  - Warning: {class_name} not found in {module_name}")
             except Exception as e:
                 print(f"  - Warning: Failed to import {class_name} from {module_name}: {e}")
-        
+
         if imported_components >= len(component_imports) * 0.8:  # 80% success rate
             test_results["tests"]["complete_system_integration"] = "PASSED"
             print("✓ Complete system integration successful")
             print(f"  - Components imported: {imported_components}/{len(component_imports)}")
         else:
             test_results["tests"]["complete_system_integration"] = "FAILED"
-            print(f"✗ Complete system integration failed ({imported_components}/{len(component_imports)} components)")
-            
+            print(
+                f"✗ Complete system integration failed ({imported_components}/{len(component_imports)} components)"
+            )
+
     except Exception as e:
         test_results["tests"]["complete_system_integration"] = "ERROR"
         print(f"✗ Complete system integration error: {e}")
-    
+
     # Test 13: System Cleanup
     print("\n13. Testing System Cleanup...")
     try:
         if 'integrator' in locals() and hasattr(integrator, 'stop_system'):
             # Test system cleanup
             cleanup_success = integrator.stop_system()
-            
+
             if cleanup_success or integrator.status == SystemStatus.STOPPED:
                 test_results["tests"]["system_cleanup"] = "PASSED"
                 print("✓ System cleanup successful")
@@ -360,15 +368,15 @@ def test_step17_final_integration():
         else:
             test_results["tests"]["system_cleanup"] = "SKIPPED"
             print("- System cleanup test skipped (integrator not available)")
-            
+
     except Exception as e:
         test_results["tests"]["system_cleanup"] = "ERROR"
         print(f"✗ System cleanup error: {e}")
-    
+
     # Calculate overall status
     passed_tests = sum(1 for test in test_results["tests"].values() if test == "PASSED")
     total_tests = len(test_results["tests"])
-    
+
     if passed_tests == total_tests:
         test_results["overall_status"] = "PASSED"
         print(f"\n🎉 ALL TESTS PASSED! ({passed_tests}/{total_tests})")
@@ -378,25 +386,29 @@ def test_step17_final_integration():
     else:
         test_results["overall_status"] = "FAILED"
         print(f"\n❌ ALL TESTS FAILED! (0/{total_tests})")
-    
+
     # Print test summary
     print("\n" + "=" * 80)
     print("TEST SUMMARY")
     print("=" * 80)
     for test_name, status in test_results["tests"].items():
-        status_symbol = "✓" if status == "PASSED" else "✗" if status == "FAILED" else "⚠️" if status == "PARTIAL" else "-"
+        status_symbol = (
+            "✓"
+            if status == "PASSED"
+            else "✗" if status == "FAILED" else "⚠️" if status == "PARTIAL" else "-"
+        )
         print(f"{status_symbol} {test_name}: {status}")
-    
+
     print(f"\nOverall Status: {test_results['overall_status']}")
     print(f"Timestamp: {test_results['timestamp']}")
-    
+
     # Save test results
     results_file = f"STEP17_TEST_RESULTS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     with open(results_file, 'w') as f:
         json.dump(test_results, f, indent=2)
-    
+
     print(f"\nTest results saved to: {results_file}")
-    
+
     return test_results
 
 

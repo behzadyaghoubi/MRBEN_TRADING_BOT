@@ -14,8 +14,11 @@ Author: MRBEN Trading System
 import numpy as np
 import pandas as pd
 
+
 class ProfessionalSignalEngine:
-    def __init__(self, lstm_threshold=0.1, rsi_bounds=(35, 65), macd_confirm=True, min_confidence=0.1):
+    def __init__(
+        self, lstm_threshold=0.1, rsi_bounds=(35, 65), macd_confirm=True, min_confidence=0.1
+    ):
         self.lstm_threshold = lstm_threshold
         self.rsi_bounds = rsi_bounds
         self.macd_confirm = macd_confirm
@@ -40,7 +43,11 @@ class ProfessionalSignalEngine:
         return df
 
     def professional_signal(self, row) -> tuple:
-        lstm_probs = [row.get('lstm_sell_proba', 0), row.get('lstm_hold_proba', 0), row.get('lstm_buy_proba', 0)]
+        lstm_probs = [
+            row.get('lstm_sell_proba', 0),
+            row.get('lstm_hold_proba', 0),
+            row.get('lstm_buy_proba', 0),
+        ]
         lstm_signal = int(np.argmax(lstm_probs))
         lstm_conf = float(np.max(lstm_probs))
         rsi = row.get('RSI', 50)
@@ -69,10 +76,13 @@ class ProfessionalSignalEngine:
         # در غیر این صورت HOLD
         return 1, lstm_conf, 'HOLD_FILTERED'
 
+
 if __name__ == "__main__":
     df = pd.read_csv('lstm_signals_fixed.csv')
-    engine = ProfessionalSignalEngine(lstm_threshold=0.1, rsi_bounds=(35, 65), macd_confirm=True, min_confidence=0.1)
+    engine = ProfessionalSignalEngine(
+        lstm_threshold=0.1, rsi_bounds=(35, 65), macd_confirm=True, min_confidence=0.1
+    )
     signals_df = engine.generate_signals(df)
     signals_df.to_csv('outputs/professional_signals.csv', index=False)
     print('Professional signals generated and saved to outputs/professional_signals.csv')
-    print(signals_df['signal_label'].value_counts()) 
+    print(signals_df['signal_label'].value_counts())

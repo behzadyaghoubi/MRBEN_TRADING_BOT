@@ -1,9 +1,11 @@
 import numpy as np
 
+
 def load_trained_agent(agent_path, epsilon=0.01):
     q_table = np.load(agent_path, allow_pickle=True).item()
     print("✅ Q-Table بارگذاری شد.")
     return {'q_table': q_table, 'epsilon': epsilon}
+
 
 def predict_next_signal(agent, df):
     # فرض: فقط از قیمت بسته شدن برای state استفاده می‌شود

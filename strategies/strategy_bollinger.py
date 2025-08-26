@@ -1,5 +1,6 @@
 import talib
 
+
 def bollinger_signal(df, period=20):
     if len(df) < period:
         return "NO SIGNAL"

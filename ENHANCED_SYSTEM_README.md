@@ -8,14 +8,14 @@ The MR BEN trading system has been enhanced with the following advanced features
 - **Before**: Fixed 300/500 pips SL/TP
 - **Now**: Dynamic calculation based on ATR (Average True Range)
 - **Benefits**: Automatically adapts to market volatility
-- **Configuration**: 
+- **Configuration**:
   - SL = ATR × 2.0 (adjustable)
   - TP = ATR × 4.0 (1:2 risk-reward ratio)
 
 ### 2. ✅ **Trailing Stop Management**
 - **Before**: No trailing stops
 - **Now**: Active trailing stop management for all positions
-- **Logic**: 
+- **Logic**:
   - BUY positions: SL moves up as price increases
   - SELL positions: SL moves down as price decreases
   - Distance: ATR × 1.5 (adjustable)
@@ -221,4 +221,4 @@ The enhanced MR BEN trading system is now ready with:
 
 **Start trading**: `python enhanced_live_runner.py`
 
-**Happy Trading! 🚀** 
+**Happy Trading! 🚀**

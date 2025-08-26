@@ -7,4 +7,3 @@
 \- For risk manager (ATR SL/TP), test BUY/SELL, low/high ATR, rounding.
 
 \- CI-friendly: tests runnable via `pytest -q`.
-

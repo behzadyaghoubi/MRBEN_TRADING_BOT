@@ -1,5 +1,5 @@
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
 df = pd.read_csv('ai_trading_results.csv')
 print(df['lstm_proba'].describe())

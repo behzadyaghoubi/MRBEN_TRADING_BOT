@@ -21,7 +21,7 @@ for idx, row in bt.iterrows():
         "RSI": c.get('RSI', 0),
         "signal": 1 if row['signal'] == 'BUY' else -1,
         "close": c['close'],
-        "target": 1 if row['profit'] > 0 else 0
+        "target": 1 if row['profit'] > 0 else 0,
     }
     dataset.append(sample)
 

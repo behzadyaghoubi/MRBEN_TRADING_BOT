@@ -98,10 +98,10 @@ MR BEN Trading System
    ```bash
    # Start the system
    python main.py start
-   
+
    # Check system status
    python main.py status
-   
+
    # Run in interactive mode
    python main.py interactive
    ```
@@ -114,15 +114,15 @@ from core.system_integrator import SystemIntegrator
 # Initialize the system
 with SystemIntegrator("config/config.yaml") as system:
     # System is automatically started
-    
+
     # Get system status
     status = system.get_system_status()
     print(f"System Status: {status['system_status']}")
-    
+
     # Run diagnostics
     health = system.run_diagnostic()
     print(f"System Health: {health['recommendations']}")
-    
+
 # System is automatically stopped when exiting context
 ```
 
@@ -172,13 +172,13 @@ mrben/
 trading:
   enabled: true
   mode: "paper"  # paper, live, demo
-  
+
 # Risk Management
 risk:
   max_exposure: 0.5
   max_positions: 10
   stop_loss_enabled: true
-  
+
 # Machine Learning
 ml:
   models_enabled: true

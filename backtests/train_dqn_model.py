@@ -1,7 +1,7 @@
-import numpy as np
 import pandas as pd
-from dqn_env import TradingEnvDQN
+
 from dqn_agent import DQNAgent
+from dqn_env import TradingEnvDQN
 
 # Load historical data
 df = pd.read_csv('ohlc_data.csv')
@@ -32,7 +32,9 @@ for episode in range(episodes):
 
     agent.replay(batch_size)
 
-    print(f"Episode: {episode + 1}/{episodes}, Total Reward: {total_reward}, Epsilon: {round(agent.epsilon, 3)}")
+    print(
+        f"Episode: {episode + 1}/{episodes}, Total Reward: {total_reward}, Epsilon: {round(agent.epsilon, 3)}"
+    )
 
 # Save the trained model
 agent.model.save('trained_dqn_model.h5')

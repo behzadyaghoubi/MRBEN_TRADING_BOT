@@ -18,7 +18,7 @@ signals = (proba > 0.5).astype(int)
 df = pd.read_csv('ohlc_data.csv')
 
 # هم اندازه کردن دیتا با سیگنال‌ها
-df = df.iloc[-len(signals):].copy()
+df = df.iloc[-len(signals) :].copy()
 
 # اضافه کردن ستون‌های سیگنال و احتمال
 df['lstm_proba'] = proba

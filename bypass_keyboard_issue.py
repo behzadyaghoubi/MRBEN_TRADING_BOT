@@ -1,63 +1,60 @@
 import pandas as pd
-import numpy as np
-import subprocess
-import sys
-import os
+
 
 def run_analysis_directly():
     """Run analysis directly without terminal commands."""
     print("🚀 اجرای مستقیم تحلیل بدون ترمینال")
     print("=" * 50)
-    
+
     # Analysis 1: Check synthetic dataset
     print("\n1. بررسی دیتاست مصنوعی:")
     try:
         df = pd.read_csv('data/mrben_ai_signal_dataset_synthetic_balanced.csv')
-        
+
         # Count signals
         buy_count = len(df[df['signal'] == 'BUY'])
         sell_count = len(df[df['signal'] == 'SELL'])
         hold_count = len(df[df['signal'] == 'HOLD'])
         total_count = len(df)
-        
+
         print(f"   کل نمونه‌ها: {total_count}")
         print(f"   BUY: {buy_count} ({buy_count/total_count*100:.1f}%)")
         print(f"   SELL: {sell_count} ({sell_count/total_count*100:.1f}%)")
         print(f"   HOLD: {hold_count} ({hold_count/total_count*100:.1f}%)")
-        
+
         # Check balance
         if buy_count > 0 and sell_count > 0:
             ratio = buy_count / sell_count
             print(f"   نسبت BUY/SELL: {ratio:.2f}")
-            
+
             if 0.8 <= ratio <= 1.2:
                 print("   ✅ توزیع BUY/SELL متعادل است")
             else:
                 print("   ⚠️ توزیع BUY/SELL نامتعادل است")
-        
+
         # Compare with original
         original_hold = 97.7
         improvement = original_hold - (hold_count / total_count * 100)
         print(f"   بهبود: {improvement:.1f}% کاهش غلبه HOLD")
-        
+
         success = True
-        
+
     except Exception as e:
         print(f"   ❌ خطا: {e}")
         success = False
-    
+
     # Analysis 2: Check if we can proceed with LSTM training
     print("\n2. بررسی امکان بازآموزی LSTM:")
     if success:
         print("   ✅ دیتاست مصنوعی آماده است")
         print("   ✅ می‌توانیم LSTM را بازآموزی کنیم")
-        
+
         # Create LSTM training script
         create_lstm_training_script()
-        
+
     else:
         print("   ❌ مشکل در دیتاست مصنوعی")
-    
+
     # Analysis 3: Next steps
     print("\n3. مراحل بعدی:")
     if success:
@@ -67,13 +64,14 @@ def run_analysis_directly():
     else:
         print("   📋 رفع مشکل دیتاست")
         print("   📋 تولید مجدد داده مصنوعی")
-    
+
     return success
+
 
 def create_lstm_training_script():
     """Create LSTM training script."""
     print("\n4. ایجاد اسکریپت بازآموزی LSTM:")
-    
+
     script_content = '''import pandas as pd
 import numpy as np
 from tensorflow.keras.models import Sequential
@@ -169,7 +167,7 @@ def train_lstm_with_synthetic_data():
 if __name__ == "__main__":
     train_lstm_with_synthetic_data()
 '''
-    
+
     try:
         with open('train_lstm_balanced.py', 'w', encoding='utf-8') as f:
             f.write(script_content)
@@ -177,5 +175,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"   ❌ خطا در ایجاد اسکریپت: {e}")
 
+
 if __name__ == "__main__":
-    run_analysis_directly() 
+    run_analysis_directly()

@@ -201,6 +201,6 @@ observe_trade_close("EURUSD", 1, "pro", r_multiple)
 
 ---
 
-**Status**: STEP8 COMPLETED ✅  
-**Date**: Current  
+**Status**: STEP8 COMPLETED ✅
+**Date**: Current
 **Next**: STEP9 - Shadow A/B Testing

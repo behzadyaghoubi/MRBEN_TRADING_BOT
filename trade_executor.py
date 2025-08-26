@@ -1,8 +1,9 @@
+import os
+from datetime import datetime
+
 import MetaTrader5 as mt5
 import pandas as pd
-from datetime import datetime
-import json
-import os
+
 
 def send_order(symbol, signal, volume=0.01, sl_distance=300, tp_distance=500):
     DEVIATION = 10
@@ -53,7 +54,7 @@ def send_order(symbol, signal, volume=0.01, sl_distance=300, tp_distance=500):
         "sl": sl,
         "tp": tp,
         "result_code": result.retcode,
-        "comment": result.comment
+        "comment": result.comment,
     }
 
     if os.path.exists(LOG_FILE):

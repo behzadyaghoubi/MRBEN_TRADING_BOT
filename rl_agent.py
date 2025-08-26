@@ -1,9 +1,11 @@
 # rl_agent.py
+import os
+import random
+from collections import deque
+
 import numpy as np
 import tensorflow as tf
-from collections import deque
-import random
-import os
+
 
 class DQNAgent:
     def __init__(self, state_size, action_size, model_path="dqn_rl_weights.h5", memory_size=10000):
@@ -26,13 +28,17 @@ class DQNAgent:
             print(f"[OK] DQN weights loaded from {model_path}")
 
     def _build_model(self):
-        model = tf.keras.Sequential([
-            tf.keras.layers.Input(shape=(self.state_size,)),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(self.action_size, activation='linear')
-        ])
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss='mse')
+        model = tf.keras.Sequential(
+            [
+                tf.keras.layers.Input(shape=(self.state_size,)),
+                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(self.action_size, activation='linear'),
+            ]
+        )
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss='mse'
+        )
         return model
 
     def update_target_model(self):

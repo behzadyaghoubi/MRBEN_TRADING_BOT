@@ -1,6 +1,6 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 df = pd.read_csv('ai_trading_results.csv')
 df = df.dropna().reset_index(drop=True)
@@ -10,7 +10,7 @@ BUY_THRESHOLD = 0.55
 SELL_THRESHOLD = 0.45
 TRANSACTION_COST = 1.0
 
-trade_condition = ((df['lstm_proba'] > BUY_THRESHOLD) | (df['lstm_proba'] < SELL_THRESHOLD))
+trade_condition = (df['lstm_proba'] > BUY_THRESHOLD) | (df['lstm_proba'] < SELL_THRESHOLD)
 df = df[trade_condition].reset_index(drop=True)
 
 print(f"Rows after filtering: {len(df)}")
@@ -59,7 +59,7 @@ win_rate = win_trades / n_trades * 100
 avg_return = df['trade_return_net'].mean()
 profit = df['cum_return'].iloc[-1]
 
-print(f"\n===== Performance Summary (With Threshold) =====")
+print("\n===== Performance Summary (With Threshold) =====")
 print(f"Total Trades: {n_trades}")
 print(f"Win Trades: {win_trades} | Loss Trades: {loss_trades}")
 print(f"Win Rate: {win_rate:.2f}%")

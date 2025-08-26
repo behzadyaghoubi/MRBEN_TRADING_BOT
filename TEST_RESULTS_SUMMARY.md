@@ -7,7 +7,7 @@ All 5 critical fix tests passed successfully:
 ### 1. ✅ `test_is_spread_ok_dynamic`
 - **Purpose**: Test the dynamic spread check based on ATR
 - **Result**: PASSED
-- **Verification**: 
+- **Verification**:
   - Function correctly calculates spread price from points
   - ATR threshold calculation works (ATR * max_atr_frac)
   - Logic correctly compares spread vs ATR threshold

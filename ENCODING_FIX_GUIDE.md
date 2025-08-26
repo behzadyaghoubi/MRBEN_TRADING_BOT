@@ -80,4 +80,4 @@ python fixed_comprehensive_update.py
 در صورت بروز مشکل، فایل‌های لاگ را بررسی کنید:
 - `logs/execution_*.log`
 - `logs/fixed_comprehensive_update_*.log`
-- `logs/system_test_*.log` 
+- `logs/system_test_*.log`

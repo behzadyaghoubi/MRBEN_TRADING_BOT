@@ -6,7 +6,7 @@ Comprehensive validation of the production system through backtest, paper tradin
 ## Validation Phases
 
 ### Phase 1: Backtest Validation
-**Command**: 
+**Command**:
 ```bash
 python live_trader_clean.py backtest --symbol XAUUSD.PRO,EURUSD.PRO,GBPUSD.PRO --from 2025-07-01 --to 2025-08-15 --regime --agent --config config/pro_config.json
 ```
@@ -168,5 +168,5 @@ python live_trader_clean.py --mode live --config config/pro_config.json --agent 
 5. Production deployment
 
 ---
-**Status**: Ready for Execution  
+**Status**: Ready for Execution
 **Next**: Run Validation Campaign

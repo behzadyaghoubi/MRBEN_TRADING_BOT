@@ -113,7 +113,7 @@
     "enabled": true,
     "auto_playbooks": [
       "RESTART_MT5",
-      "MEM_CLEANUP", 
+      "MEM_CLEANUP",
       "RELOGIN_MT5",
       "SPREAD_ADAPT"
     ],

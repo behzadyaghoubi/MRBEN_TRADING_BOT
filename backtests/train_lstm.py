@@ -1,9 +1,9 @@
-import pandas as pd
-import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM
-from sklearn.preprocessing import MinMaxScaler
 import joblib
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.models import Sequential
 
 # لود دیتا
 df = pd.read_csv("XAUUSD_M15_history.csv")  # یا هر دیتای دلخواه
@@ -18,8 +18,8 @@ y = []
 window_size = 20  # تعداد کندل ورودی برای پیش‌بینی
 
 for i in range(len(prices_scaled) - window_size):
-    X.append(prices_scaled[i:i+window_size])
-    y.append(prices_scaled[i+window_size])
+    X.append(prices_scaled[i : i + window_size])
+    y.append(prices_scaled[i + window_size])
 
 X, y = np.array(X), np.array(y)
 

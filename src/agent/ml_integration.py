@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 MR BEN ML Integration Module
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
 class MLIntegration:
     """Machine learning integration"""
-    
-    def __init__(self, config: Dict[str, Any]):
+
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.logger = logging.getLogger(__name__)
-        
-    def predict(self, features: Dict[str, Any]) -> float:
+
+    def predict(self, features: dict[str, Any]) -> float:
         """Make ML prediction"""
         try:
             # Placeholder for ML prediction

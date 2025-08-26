@@ -1,6 +1,8 @@
 # telemetry/mfe_logger.py
-import os, json, time
+import json
+import os
 from datetime import datetime
+
 
 class MFELogger:
     def __init__(self, path="data/mfe_stream.jsonl"):

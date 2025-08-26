@@ -1,10 +1,13 @@
+import os
 import time
-import pandas as pd
-import MetaTrader5 as mt5
 from datetime import datetime
+
+import MetaTrader5 as mt5
+import pandas as pd
+
 from rl_predictor import load_trained_agent, predict_next_signal
 from trade_executor import send_order
-import os
+
 
 # اتصال به متاتریدر
 def connect():
@@ -13,6 +16,7 @@ def connect():
         return False
     print("✅ اتصال به متاتریدر برقرار شد")
     return True
+
 
 # دریافت دیتا
 def get_price_data(symbol="XAUUSD", timeframe=mt5.TIMEFRAME_M5, bars=100):
@@ -25,10 +29,12 @@ def get_price_data(symbol="XAUUSD", timeframe=mt5.TIMEFRAME_M5, bars=100):
     df["price"] = df["close"]  # اضافه کردن ستون price از close
     return df
 
+
 # مسیر فایل لاگ
 log_path = "live_trades.csv"
 if not os.path.exists(log_path):
     pd.DataFrame(columns=["time", "symbol", "signal", "price"]).to_csv(log_path, index=False)
+
 
 def get_last_signal():
     try:
@@ -37,11 +43,13 @@ def get_last_signal():
     except:
         return None
 
+
 def log_trade(symbol, signal, price):
     new_row = {"time": datetime.now(), "symbol": symbol, "signal": signal, "price": price}
     df = pd.read_csv(log_path)
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(log_path, index=False)
+
 
 def run_rl_trader():
     symbol = "XAUUSD"
@@ -58,7 +66,11 @@ def run_rl_trader():
         signal = predict_next_signal(agent, df)
 
         if signal != last_signal:
-            price = mt5.symbol_info_tick(symbol).ask if signal == "BUY" else mt5.symbol_info_tick(symbol).bid
+            price = (
+                mt5.symbol_info_tick(symbol).ask
+                if signal == "BUY"
+                else mt5.symbol_info_tick(symbol).bid
+            )
             send_order(symbol, signal, price, df)
             log_trade(symbol, signal, price)
             last_signal = signal
@@ -67,6 +79,7 @@ def run_rl_trader():
             print("🔁 سیگنال RL جدیدی وجود ندارد یا تکراری است")
 
         time.sleep(15)
+
 
 if __name__ == "__main__":
     if connect():

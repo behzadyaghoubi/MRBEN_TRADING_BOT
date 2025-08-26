@@ -15,7 +15,7 @@ X = []
 y = []
 
 for i in range(len(df) - window_size):
-    X.append(features[i:i+window_size])
+    X.append(features[i : i + window_size])
     y.append(labels[i + window_size])
 
 X = np.array(X)

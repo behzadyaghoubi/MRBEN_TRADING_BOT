@@ -9,6 +9,7 @@ print("🚀 Starting LSTM Training...")
 # Import and run training directly
 try:
     from direct_training import main
+
     print("✅ Imported training module")
     success = main()
     if success:
@@ -18,7 +19,8 @@ try:
 except Exception as e:
     print(f"❌ Error: {e}")
     import traceback
+
     traceback.print_exc()
 
 print("Press Enter to exit...")
-input() 
+input()

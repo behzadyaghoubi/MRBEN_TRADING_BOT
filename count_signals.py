@@ -17,8 +17,8 @@ for signal, count in signal_counts.items():
 if 'BUY' in signal_counts and 'SELL' in signal_counts:
     ratio = signal_counts['BUY'] / signal_counts['SELL']
     print(f"\nBUY/SELL ratio: {ratio:.2f}")
-    
+
     if 0.8 <= ratio <= 1.2:
         print("✅ Balanced BUY/SELL distribution")
     else:
-        print("⚠️ Unbalanced BUY/SELL distribution") 
+        print("⚠️ Unbalanced BUY/SELL distribution")

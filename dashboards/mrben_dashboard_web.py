@@ -1,5 +1,5 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 st.set_page_config(page_title="MR BEN Dashboard", layout="wide")
 st.title("📊 داشبورد حرفه‌ای ربات معاملاتی MR BEN")
@@ -20,7 +20,11 @@ if df is not None and not df.empty:
     loss_trades = num_trades - win_trades
     win_rate = win_trades / num_trades * 100 if num_trades > 0 else 0
     max_drawdown = (df['capital'].cummax() - df['capital']).max()
-    max_drawdown_pct = (max_drawdown / df['capital'].cummax().max()) * 100 if df['capital'].cummax().max() > 0 else 0
+    max_drawdown_pct = (
+        (max_drawdown / df['capital'].cummax().max()) * 100
+        if df['capital'].cummax().max() > 0
+        else 0
+    )
 
     col1, col2, col3 = st.columns(3)
     col1.metric("سرمایه اولیه", f"${start_capital:,.2f}")
@@ -37,7 +41,10 @@ if df is not None and not df.empty:
     st.line_chart(df['capital'])
 
     st.markdown("### 📋 آخرین 10 معامله")
-    st.dataframe(df[['date', 'action', 'price', 'capital', 'lot', 'trailing_stop']].tail(10), use_container_width=True)
+    st.dataframe(
+        df[['date', 'action', 'price', 'capital', 'lot', 'trailing_stop']].tail(10),
+        use_container_width=True,
+    )
 
     with st.expander("مشاهده جدول کامل معاملات"):
         st.dataframe(df, use_container_width=True)

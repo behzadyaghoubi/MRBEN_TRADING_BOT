@@ -24,7 +24,7 @@
 
 ## Strategy Components Performance
 - **Rule-based**: 32% weight, 65% accuracy
-- **ML Filter**: 35% weight, 72% accuracy  
+- **ML Filter**: 35% weight, 72% accuracy
 - **LSTM Filter**: 35% weight, 71% accuracy
 - **Ensemble**: 68.1% final accuracy
 

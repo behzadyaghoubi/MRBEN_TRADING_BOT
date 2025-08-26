@@ -103,4 +103,4 @@ If keyboard issue persists:
 
 ---
 
-**🎯 GOAL: Get MR BEN trading system running without keyboard issues** 
+**🎯 GOAL: Get MR BEN trading system running without keyboard issues**
