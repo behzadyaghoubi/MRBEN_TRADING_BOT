@@ -1,4 +1,4 @@
-from risk_manager.atr_sl_tp import SLTPResult, calc_sltp_from_atr
+from src.risk_manager.atr_sl_tp import SLTPResult, calc_sltp_from_atr
 
 
 def test_buy_with_atr():
