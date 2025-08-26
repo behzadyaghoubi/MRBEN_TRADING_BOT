@@ -52,6 +52,7 @@ class PerformanceMetrics:
             "cycles_per_second": self.cycle_count / uptime if uptime > 0 else 0,
             "avg_response_time": avg_response,
             "total_trades": self.trade_count,
+            "error_count": self.error_count,
             "error_rate": self.error_count / max(self.cycle_count, 1),
             "memory_mb": memory_mb,
         }
