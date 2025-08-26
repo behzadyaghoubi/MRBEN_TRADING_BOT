@@ -22,7 +22,7 @@ def test_system_components():
 
     # Test 1: Import SystemIntegrator
     try:
-        from mrben.core.system_integrator import SystemIntegrator
+        from core.system_integrator import SystemIntegrator
 
         report.append("System Status: ✅ SystemIntegrator imported successfully")
         integrator_available = True
@@ -32,7 +32,7 @@ def test_system_components():
 
     # Test 2: Check config loading
     try:
-        from mrben.core.configx import load_config
+        from core.configx import load_config
 
         config = load_config("config/config.yaml")
         report.append("Config Status: ✅ Configuration loaded successfully")

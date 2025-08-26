@@ -44,7 +44,7 @@ disallow_incomplete_defs = true
 exclude = [
     "tests/.*",
     "^config\\.py$",              # exclude top-level config.py
-    "^mrben/config/.*",           # exclude legacy duplicate if exists
+    "^mrben/.*",                  # exclude legacy duplicate package
 ]
 
 [tool.pytest.ini_options]
