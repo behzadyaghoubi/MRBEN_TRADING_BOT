@@ -192,7 +192,7 @@ class MT5LiveTrader:
 
             # Event Logger (optional)
             try:
-                from telemetry import EventLogger
+                from telemetry.event_logger import EventLogger
 
                 os.makedirs("data", exist_ok=True)
                 self.ev = EventLogger(
@@ -241,7 +241,7 @@ class MT5LiveTrader:
 
         # MFE Logger (optional)
         try:
-            from telemetry import MFELogger
+            from telemetry.mfe_logger import MFELogger
 
             self.mfe_logger = MFELogger("data/mfe_tick_data.jsonl")
         except ImportError:
