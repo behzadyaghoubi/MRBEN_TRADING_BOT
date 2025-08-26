@@ -30,7 +30,9 @@ try:
     from core.metrics import PerformanceMetrics
     from data.manager import MT5DataManager
     from execution.executor import EnhancedTradeExecutor
+    from indicators.atr import compute_atr
     from risk.manager import EnhancedRiskManager
+    from risk_manager.atr_sl_tp import calc_sltp_from_atr
     from utils.helpers import (
         _apply_soft_gate,
         _rolling_atr,
@@ -269,6 +271,15 @@ class MT5LiveTrader:
         rconf = self.config.config_data.get("risk", {})
         self.sl_mult_base = float(rconf.get("sl_atr_multiplier", 1.6))
         self.tp_mult_base = min(float(rconf.get("tp_atr_multiplier", 3.0)), 2.2)
+
+        # ATR-based SL/TP parameters
+        self.atr_period = int(rconf.get("atr_period", 14))
+        self.rr = float(rconf.get("rr", 1.5))
+        self.sl_k = float(rconf.get("sl_k", 1.0))
+        self.tp_k = float(rconf.get("tp_k", 1.5))
+        self.fallback_sl_pct = float(rconf.get("fallback_sl_pct", 0.005))
+        self.fallback_tp_pct = float(rconf.get("fallback_tp_pct", 0.0075))
+
         self.conf_min = float(self.risk_manager.base_confidence_threshold)
         self.conf_max = 0.90
         self.k_sl = 0.35  # SL adjustment coefficient based on confidence
@@ -933,9 +944,36 @@ class MT5LiveTrader:
             account_info = self.trade_executor.get_account_info()
             balance = account_info.get('balance', 10000.0)
 
-            # Calculate SL/TP
-            sl, tp = self.risk_manager.calculate_dynamic_sl_tp(
-                self.config.SYMBOL, entry_price, trade_type
+            # Calculate ATR-based SL/TP
+            # Get latest data for ATR calculation
+            df = self.data_manager.get_latest_data(self.atr_period + 1)
+            if df is not None and len(df) >= self.atr_period:
+                # Calculate ATR from the data
+                atr_series = compute_atr(df, self.atr_period)
+                atr_value = atr_series.iloc[-1] if not atr_series.empty else None
+            else:
+                atr_value = None
+                self.logger.warning("Insufficient data for ATR calculation, using fallback")
+
+            # Use new ATR-based SL/TP calculator
+            sltp_result = calc_sltp_from_atr(
+                side="buy" if trade_type == "BUY" else "sell",
+                entry_price=entry_price,
+                atr_value=atr_value,
+                rr=self.rr,
+                sl_k=self.sl_k,
+                tp_k=self.tp_k,
+                fallback_sl_pct=self.fallback_sl_pct,
+                fallback_tp_pct=self.fallback_tp_pct,
+            )
+
+            sl, tp = sltp_result.sl, sltp_result.tp
+
+            # Log ATR SL/TP calculation details
+            self.logger.info(
+                f"ATR SL/TP: Entry={entry_price:.5f}, ATR={atr_value:.5f if atr_value else 'N/A'}, "
+                f"SL={sl:.5f}, TP={tp:.5f}, Fallback={sltp_result.used_fallback}, "
+                f"Side={trade_type}, RR={self.rr}, SL_k={self.sl_k}, TP_k={self.tp_k}"
             )
 
             # Calculate lot size
