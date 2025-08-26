@@ -30,7 +30,11 @@ warn_return_any = true
 no_implicit_optional = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
-exclude = ["tests/.*"]
+exclude = [
+    "tests/.*",
+    "^config\\.py$",              # exclude top-level config.py
+    "^mrben/config/.*",           # exclude legacy duplicate if exists
+]
 
 [tool.pytest.ini_options]
 addopts = "-q"
