@@ -23,7 +23,7 @@ except ImportError:
 
 # Import local modules
 import sys
-import os
+
 # Add current directory to Python path for imports
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if current_dir not in sys.path:
@@ -32,6 +32,7 @@ if current_dir not in sys.path:
 try:
     # Try absolute imports from src root
     from src.ai.system import MRBENAdvancedAISystem
+    from src.config.settings import MT5Config
     from src.core.exceptions import TradingSystemError
     from src.core.metrics import PerformanceMetrics
     from src.data.manager import MT5DataManager
@@ -40,7 +41,6 @@ try:
     from src.risk.manager import EnhancedRiskManager
     from src.risk_manager.atr_sl_tp import calc_sltp_from_atr
     from src.signals.multi_tf_rsi_macd import analyze_multi_tf_rsi_macd
-    from src.config.settings import MT5Config
     from src.utils.helpers import (
         _apply_soft_gate,
         _rolling_atr,

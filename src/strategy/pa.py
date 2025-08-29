@@ -3,13 +3,14 @@
 MR BEN Pro Strategy - Price Action Validation Module
 """
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
 class PAResult:
     """Price Action result data class."""
+
     signal: int = 0
     confidence: float = 0.0
     pattern: str | None = None
