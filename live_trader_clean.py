@@ -13,20 +13,65 @@ NEW: Confluence Strategy Integration
 """
 
 import argparse
-import itertools
+import datetime as dt
 import json
 import logging
 import os
 import sys
 import time
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
-import datetime as dt
+from decimal import Decimal, ROUND_DOWN
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from tenacity import retry, wait_exponential_jitter, stop_after_attempt, retry_if_exception_type
+
+from src.core.alerting import send_alert
+from src.core.logging_setup import setup_json_logger
+
+# Import new core modules
+from src.core.order_safety import SymbolInfo, send_order_safe
+from src.core.persistence import DailyState, load_daily_state
+
+# Import AI and execution features
+from src.features.flags import FLAGS
+from src.ai.features import make_features
+from src.ai.quality_model import QualityModel
+from src.ai.replay_buffer import log_experience
+from src.execution.adaptive_exec import Quote, slippage_ok, canary_size, choose_order_type, auto_replace_loop
+
+# JSON logging setup
+class _JsonStdout(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        import json, sys
+        try:
+            payload = {
+                "ts": datetime.now(UTC).isoformat(),
+                "lvl": record.levelname,
+                "name": record.name,
+                "msg": record.getMessage(),
+            }
+            if record.exc_info:
+                payload["exc"] = logging.Formatter().formatException(record.exc_info)
+            sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
+def _setup_json_logger(root_level: int = logging.INFO) -> logging.Logger:
+    logger = logging.getLogger()
+    logger.setLevel(root_level)
+    for h in list(logger.handlers):
+        logger.removeHandler(h)
+    h = _JsonStdout(); h.setLevel(root_level); logger.addHandler(h)
+    return logger
+
+if os.getenv("MRBEN_JSON_LOG", "1") == "1":
+    _setup_json_logger()
+Path("logs").mkdir(exist_ok=True)
 
 # Import challenge mode guards
 try:
@@ -69,6 +114,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # Sanitize environment before any imports that might use OpenAI
 from src.core.env_sanitize import sanitize_openai_env
+
 sanitize_openai_env()
 
 # Import real MT5 broker service
@@ -86,74 +132,74 @@ except ImportError as e:
 # Core imports
 # AI Filter imports
 from src.ai.filter import ConfluenceAIFilter
-from src.core.metrics import PerformanceMetrics
 
 # New enhanced components
 from src.core.gating import AllOfFourGate, ConcurrencyLimiter
+from src.core.metrics import PerformanceMetrics
 from src.core.spread_control import SpreadController
 from src.core.supervisor_enhanced import SupervisorClient
 from src.strategies.stealth_strategy import StealthStrategy
-from src.risk.position_sizer import size_position
-from src.execution.costs import CostModel
 
 # Supervisor imports
 try:
     from src.core.supervisor import (
         initialize_supervisor,
         on_cycle,
+        on_error,
+        on_fill,
         on_signal,
         on_skip,
-        on_fill,
-        on_error,
         supervisor_emit,
     )
+
     print("✅ Trading Supervisor imported")
 except ImportError as e:
     print(f"⚠️ Failed to import supervisor: {e}")
-    
+
     # NO-OP shims for DEMO/Report-only, fail-fast only in LIVE
     class DummySupervisor:
         def __init__(self):
             self.enabled = False
-    
+
     def initialize_supervisor(config):
         return DummySupervisor()
-    
+
     def on_cycle(meta):
         pass  # NO-OP
-    
+
     def on_signal(signal_meta):
         pass  # NO-OP
-    
+
     def on_skip(reason, meta):
         pass  # NO-OP
-    
+
     def on_fill(fill_meta):
         pass  # NO-OP
-    
+
     def on_error(stage, error_msg, meta):
         pass  # NO-OP
-    
+
     def supervisor_emit(event_type, context, reason=None):
         # Lightweight JSONL fallback - no schema validation in DEMO/Report-only
         try:
             import json
-            from datetime import datetime, timezone
-            
+            from datetime import datetime
+
             log_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "event_type": event_type,
                 "context": context,
                 "reason": reason,
                 "fallback": True,
-                "mode": "DEMO_FALLBACK"
+                "mode": "DEMO_FALLBACK",
             }
-            
+
             os.makedirs("logs", exist_ok=True)
             with open("logs/supervisor_events.jsonl", "a", encoding="utf-8") as f:
                 f.write(json.dumps(log_entry) + "\n")
         except Exception:
             pass  # Silent fallback
+
 
 # Risk manager imports
 from src.core.risk_manager import position_size_by_risk
@@ -163,25 +209,49 @@ try:
     from src.core.gating import AllOfFourGate, ConcurrencyLimiter
     from src.core.spread_control import SpreadController
     from src.core.supervisor_enhanced import SupervisorClient
+
     print("✅ Enhanced components imported")
 except ImportError as e:
     print(f"⚠️ Enhanced components not available: {e}")
+
     # Fallback implementations
     class AllOfFourGate:
-        def __init__(self, cfg): pass
-        def decide(self, sym, ctx): return type('Decision', (), {'allow': True, 'reason': 'fallback'})()
+        def __init__(self, cfg):
+            pass
+
+        def decide(self, sym, ctx):
+            return type('Decision', (), {'allow': True, 'reason': 'fallback'})()
+
     class ConcurrencyLimiter:
-        def __init__(self, cfg): pass
-        def can_open(self, sym): return True
-        def on_open(self, sym): pass
-        def on_close(self, sym): pass
+        def __init__(self, cfg):
+            pass
+
+        def can_open(self, sym):
+            return True
+
+        def on_open(self, sym):
+            pass
+
+        def on_close(self, sym):
+            pass
+
     class SpreadController:
-        def __init__(self, cfg): pass
-        def ok(self, sym, ctx): return True
+        def __init__(self, cfg):
+            pass
+
+        def ok(self, sym, ctx):
+            return True
+
     class SupervisorClient:
-        def __init__(self, cfg): pass
-        def heartbeat(self): pass
-        def decide(self, snapshot): return type('SupDecision', (), {'allow': True, 'reason': 'fallback', 'tweaks': {}})()
+        def __init__(self, cfg):
+            pass
+
+        def heartbeat(self):
+            pass
+
+        def decide(self, snapshot):
+            return type('SupDecision', (), {'allow': True, 'reason': 'fallback', 'tweaks': {}})()
+
 
 # Indicator imports
 from src.indicators.atr import compute_atr
@@ -231,7 +301,6 @@ except ImportError:
 TF_TO_MIN = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
 
 # Import kill-switch and alerting
-from src.core.alerting import send_alert
 
 # Import circuit breaker
 from src.core.circuit_breaker import CBConfig, CircuitBreaker
@@ -267,10 +336,111 @@ class TradeRecord:
     extras: dict[str, Any]
 
 
+# Safe order utilities
+def _quantize_to_step(x: Decimal, step: Decimal) -> Decimal:
+    if step <= 0:
+        raise ValueError("step must > 0")
+    return (x // step) * step  # floor to step
+
+@dataclass
+class _SymbolInfo:
+    price_tick: Decimal
+    qty_step: Decimal
+    min_qty: Decimal
+
+class _TransientExchangeError(Exception): ...
+
+def _make_client_id(prefix: str = "MRBEN") -> str:
+    return f"{prefix}-{int(datetime.now(UTC).timestamp())}-{uuid.uuid4().hex[:8]}"
+
+@retry(wait=wait_exponential_jitter(initial=0.5, max=6),
+       stop=stop_after_attempt(5),
+       retry=retry_if_exception_type(_TransientExchangeError))
+def _send_order_safe(
+    broker,
+    cb,
+    *,
+    symbol: str,
+    side: str,
+    order_type: str,
+    qty: Decimal,
+    price: Decimal | None,
+    info: _SymbolInfo,
+    tif: str = "GTC",
+    ttl_sec: int = 15,
+    logger: logging.Logger | None = None,
+) -> dict:
+    lg = logger or logging.getLogger("mrben.order")
+    cb.check()  # CircuitBreaker must provide .check/.record_success/.record_failure
+    cid = _make_client_id()
+    q_qty = _quantize_to_step(qty, info.qty_step)
+    if q_qty < info.min_qty:
+        q_qty = info.min_qty
+    q_price = None if price is None else _quantize_to_step(price, info.price_tick).quantize(info.price_tick, rounding=ROUND_DOWN)
+
+    lg.info(f"order_send_attempt symbol={symbol} side={side} type={order_type} qty={q_qty} price={q_price} cid={cid}")
+    try:
+        resp = broker.order_send(symbol=symbol, side=side, type=order_type,
+                                 qty=float(q_qty), price=float(q_price) if q_price else None,
+                                 tif=tif, client_id=cid)
+    except (TimeoutError, ConnectionError) as e:
+        cb.record_failure(); lg.warning(f"order_send_transient symbol={symbol} cid={cid} err={e}")
+        raise _TransientExchangeError(e)
+    except Exception as e:
+        cb.record_failure(); lg.error(f"order_send_permanent symbol={symbol} cid={cid} err={e}")
+        raise
+
+    cb.record_success()
+    order_id = resp.get("id") or resp.get("orderId") or resp.get("ticket")
+    t0 = time.time()
+    while time.time() - t0 < ttl_sec:
+        try:
+            od = broker.order_get(order_id=order_id, symbol=symbol)
+            status = (od.get("status") or "").lower()
+            if status in {"filled", "closed"}:
+                lg.info(f"order_filled order_id={order_id}")
+                return od
+            if status in {"canceled", "rejected", "expired"}:
+                lg.warning(f"order_failed status={status} order_id={order_id}")
+                raise RuntimeError(f"order {status}")
+        except Exception as e:
+            lg.warning(f"order_poll_error order_id={order_id} err={e}")
+        time.sleep(0.5)
+    try:
+        broker.order_cancel(order_id=order_id, symbol=symbol)
+        lg.warning(f"order_timeout_canceled order_id={order_id}")
+    except Exception as e:
+        lg.error(f"order_cancel_failed order_id={order_id} err={e}")
+    raise TimeoutError("order not filled in time")
+
+# Pro features (flags, slippage, shadow, canary)
+@dataclass(slots=True)
+class _Flags:
+    news_gate: bool = os.getenv("FF_NEWS_GATE", "1") == "1"
+    auto_replace: bool = os.getenv("FF_AUTO_REPLACE", "0") == "1"
+    shadow_mode: bool = os.getenv("FF_SHADOW", "1") == "1"
+    canary_mode: bool = os.getenv("FF_CANARY", "1") == "1"
+    slippage_guard: bool = os.getenv("FF_SLIPPAGE_GUARD", "1") == "1"
+_FLAGS = _Flags()
+
+def _slippage_ok(bid: float, ask: float, side: str, max_bps: float = 10.0) -> bool:
+    mid = (bid + ask) / 2.0
+    exp = ask if side.lower() == "buy" else bid
+    bps = abs(exp - mid) / mid * 1e4
+    return bps <= max_bps
+
+def _shadow_log(logger: logging.Logger, signal: dict, size: float, price_est: float | None) -> None:
+    logger.info(f"shadow_signal side={signal.get('side')} size={size} price_est={price_est}")
+
+def _canary_size(base_size: float, success_seq: int, step: float = 0.5, max_mult: float = 1.0) -> float:
+    mult = min(1.0 + step * max(0, success_seq), max_mult)
+    return max(base_size * mult, base_size * 0.1)
+
+
 class LiveTraderApp:
     """
     DEPRECATED: Production-grade live trading application with full supervision
-    
+
     This class is deprecated. Use the pipeline: evaluate_once → maybe_execute_trade → write_report
     instead of this class-based approach.
     """
@@ -279,6 +449,26 @@ class LiveTraderApp:
         self.cfg = cfg
         self.args = args
         self.logger = logger
+
+        # UTC timestamp and daily state
+        self.start_time = datetime.now(UTC)
+        self.daily_state: DailyState = load_daily_state()
+
+        # Symbol info for decimal operations
+        tick = Decimal(str(self.cfg.get("symbols", {}).get("price_tick", 0.01)))
+        qstep = Decimal(str(self.cfg.get("symbols", {}).get("qty_step", 0.01)))
+        qmin = Decimal(str(self.cfg.get("symbols", {}).get("min_qty", 0.01)))
+        self._sym_info = _SymbolInfo(price_tick=tick, qty_step=qstep, min_qty=qmin)
+        self._success_seq = 0
+        
+        # AI quality model bootstrap
+        self._ai_model = QualityModel.load_or_init(n_features=len(make_features({}, {}).x))
+        self._ai_min_score = FLAGS.ai_min_score
+        self._ai_online_learn = FLAGS.ai_online_learn
+        # Exec params
+        self._exec_max_slip_bps = FLAGS.exec_max_slip_bps
+        self._exec_replace_timeout = FLAGS.exec_replace_timeout_s
+        self._exec_replace_retries = FLAGS.exec_replace_retries
 
         # Debug flags
         self.debug_scan_on_nosignal = getattr(args, 'debug_scan_on_nosignal', False)
@@ -340,14 +530,24 @@ class LiveTraderApp:
             gating_on_unavailable = cfg.get("ml", {}).get("gating_on_unavailable", "ignore")
 
             if os.path.exists(model_path) and os.path.exists(scaler_path):
-                self.ai_filter = ConfluenceAIFilter(model_path, scaler_path, neutral_default, gating_on_unavailable)
+                self.ai_filter = ConfluenceAIFilter(
+                    model_path, scaler_path, neutral_default, gating_on_unavailable
+                )
                 self.logger.info("AI Filter for Confluence Strategy initialized successfully")
             else:
-                self.logger.warning("AI Filter model files not found, will use pass-through behavior")
-                self.ai_filter = ConfluenceAIFilter(neutral_default=neutral_default, gating_on_unavailable=gating_on_unavailable)  # Initialize without model
+                self.logger.warning(
+                    "AI Filter model files not found, will use pass-through behavior"
+                )
+                self.ai_filter = ConfluenceAIFilter(
+                    neutral_default=neutral_default, gating_on_unavailable=gating_on_unavailable
+                )  # Initialize without model
         except Exception as e:
-            self.logger.warning(f"Failed to initialize AI Filter: {e}, will use pass-through behavior")
-            self.ai_filter = ConfluenceAIFilter(neutral_default=0.55, gating_on_unavailable="ignore")  # Initialize without model
+            self.logger.warning(
+                f"Failed to initialize AI Filter: {e}, will use pass-through behavior"
+            )
+            self.ai_filter = ConfluenceAIFilter(
+                neutral_default=0.55, gating_on_unavailable="ignore"
+            )  # Initialize without model
 
         # Initialize News Filter
         self.news_filter = None
@@ -359,6 +559,10 @@ class LiveTraderApp:
         except Exception as e:
             self.logger.warning(f"Failed to initialize News Filter: {e}")
             self.news_filter = None
+
+        # News filter transparency
+        if self.news_filter is None:
+            self.logger.warning("News Filter unavailable: proceeding WITHOUT news gating")
 
         # Cache configuration parameters
         self.risk_params = cfg.get('risk', {})
@@ -387,8 +591,8 @@ class LiveTraderApp:
 
         self.logger.info(f"LiveTraderApp initialized for {self.symbol} in {args.mode} mode")
 
-        # Initialize start time
-        self.start_time = datetime.now()
+        # Initialize start time (already set above with UTC)
+        # self.start_time = datetime.now()
 
     def _validate_symbol(self, symbol: str, cfg: dict[str, Any]) -> str:
         """Validate symbol and return valid symbol or default"""
@@ -403,6 +607,123 @@ class LiveTraderApp:
             )
             self.logger.warning(f"Falling back to default symbol: {default_symbol}")
             return default_symbol
+
+    def _utcnow(self) -> datetime:
+        return datetime.now(UTC)
+
+    def _kill_switch_guard(self) -> None:
+        if should_stop_now():
+            self.logger.error("Kill switch activated. Aborting trading loop.")
+            raise SystemExit(1)
+
+    def _order_send_safe(
+        self,
+        *,
+        symbol: str,
+        side: str,
+        order_type: str,
+        qty: Decimal,
+        price: Decimal | None,
+        tif: str = "GTC",
+        ttl_sec: int = 15,
+    ) -> dict:
+        return send_order_safe(
+            broker,
+            cb_order,
+            symbol=symbol,
+            side=side,
+            order_type=order_type,
+            qty=qty,
+            price=price,
+            info=self._sym_info,
+            tif=tif,
+            ttl_sec=ttl_sec,
+            logger=self.logger,
+        )
+
+    def _order_market_buy(self, qty: Decimal):
+        return self._order_send_safe(
+            symbol=self.symbol, side="buy", order_type="market", qty=qty, price=None
+        )
+
+    def _order_market_sell(self, qty: Decimal):
+        return self._order_send_safe(
+            symbol=self.symbol, side="sell", order_type="market", qty=qty, price=None
+        )
+
+    def execute_trade(self, side: str, base_size: Decimal, quotes: dict, signal: dict = None, context: dict = None, max_slip_bps: float = 10.0):
+        """Unified execution path with AI quality scoring and pro execution features."""
+        self._kill_switch_guard()
+        if side not in ("buy", "sell"):
+            self.logger.info("no_trade_decision"); return None
+            
+        # AI quality scoring
+        feats = make_features(signal or {}, context or {}).x
+        ai_score = 1.0  # default pass
+        if FLAGS.ai_quality:
+            ai_score = self._ai_model.score(feats)
+            self.logger.info(f"ai_score={ai_score:.3f}")
+        if FLAGS.ai_quality and ai_score < self._ai_min_score:
+            self.logger.info("ai_gate_reject", extra={"score": ai_score})
+            return None
+            
+        # shadow
+        if _FLAGS.shadow_mode:
+            _shadow_log(self.logger, {"side": side}, float(base_size), quotes.get("mid"))
+            
+        # Build quote object from current best bid/ask
+        q = Quote(bid=float(quotes["bid"]), ask=float(quotes["ask"]))
+        
+        # slippage guard
+        if FLAGS.exec_slippage_guard and not slippage_ok(q, side, self._exec_max_slip_bps):
+            self.logger.warning(f"slippage_block side={side} bid={q.bid} ask={q.ask}")
+            return None
+            
+        # Canary sizing
+        size = Decimal(str(base_size))
+        if FLAGS.exec_canary:
+            size = canary_size(size, self._success_seq, step=0.5, max_mult=1.0)
+            
+        # Order type adaptation
+        order_type = "market"
+        if FLAGS.exec_adapt_order_type:
+            spread_bps = abs(q.ask - q.bid) / max(q.mid, 1e-9) * 1e4
+            order_type = choose_order_type(volatility=context.get("volatility", 0.0) if context else 0.0, spread_bps=spread_bps)
+            
+        # Send order using safe wrapper or adaptive execution
+        if order_type == "market":
+            result = self._order_send_safe(symbol=self.symbol, side=side, order_type="market", qty=size, price=None, tif="IOC", ttl_sec=12)
+        else:
+            if FLAGS.exec_auto_replace:
+                result = auto_replace_loop(self.broker, self.symbol, side, size, q, float(self._sym_info.price_tick),
+                                         max_retries=self._exec_replace_retries, timeout_s=self._exec_replace_timeout, logger=self.logger)
+            else:
+                # single passive try
+                px = q.ask if side == "buy" else q.bid
+                result = self.broker.order_send(symbol=self.symbol, side=side, type="limit", qty=float(size), price=float(px), tif="IOC", client_id="MRBEN-LMT-1")
+                
+        # Update success counter
+        status = (result.get("status") or "").lower()
+        if status in {"filled", "closed"}:
+            self._success_seq = min(self._success_seq + 1, 5)
+        else:
+            self._success_seq = 0
+            
+        return result
+
+    def log_ai_feedback(self, feats: list[float], signal: dict, trade_profit: float, side: str):
+        """Log AI feedback for online learning when trade outcome becomes known."""
+        try:
+            # Define label policy: profit > 0 -> 1 else 0
+            label = 1 if trade_profit > 0 else 0
+            if FLAGS.ai_quality:
+                log_experience(feats, label, {"symbol": self.symbol, "side": side, "profit": trade_profit})
+            if FLAGS.ai_quality and self._ai_online_learn:
+                self._ai_model.update(feats, label)
+                self._ai_model.save()
+                self.logger.info(f"ai_model_updated label={label} profit={trade_profit:.2f}")
+        except Exception as e:
+            self.logger.warning(f"ai_feedback_error err={e}")
 
     def _timeframe_to_minutes(self, timeframe: str) -> int:
         """Convert timeframe string to minutes"""
@@ -444,7 +765,9 @@ class LiveTraderApp:
                 self.logger.warning(f"Failed to setup SQLite logging: {e}")
 
     # DEPRECATED: Use _fetch_confluence_data_util instead
-    def _fetch_multi_tf_ohlc(self, _symbol: str, timeframes: list[str], bars: int) -> dict[str, Any]:
+    def _fetch_multi_tf_ohlc(
+        self, _symbol: str, timeframes: list[str], bars: int
+    ) -> dict[str, Any]:
         """DEPRECATED: Use _fetch_confluence_data_util instead"""
         self.logger.warning("_fetch_multi_tf_ohlc is deprecated, use _fetch_confluence_data_util")
         return {}
@@ -630,9 +953,9 @@ class LiveTraderApp:
             # Save trade to database
             try:
                 from src.core.database import db_manager
-                
+
                 trade_data = {
-                    'timestamp': datetime.now().isoformat(),
+                    'timestamp': datetime.now(UTC).isoformat(),
                     'symbol': signal.symbol,
                     'action': signal.side,
                     'entry_price': signal.entry,
@@ -646,12 +969,12 @@ class LiveTraderApp:
                     'ai_confidence': signal.confidence,
                     'result_code': None,
                     'comment': f"Confluence Strategy - {signal.side}",
-                    'status': 'open'
+                    'status': 'open',
                 }
-                
+
                 trade_id = db_manager.save_trade(trade_data)
                 self.logger.info(f"Trade saved to database with ID: {trade_id}")
-                
+
             except Exception as e:
                 self.logger.error(f"Failed to save trade to database: {e}")
 
@@ -667,7 +990,7 @@ class LiveTraderApp:
             symbol_info = self._get_symbol_info()
             filters = self.cfg.get("strategy", {}).get("filters", {})
             max_spread_map = filters.get("max_spread_points_map", {})
-            max_spread = max_spread_map.get(self.symbol, filters.get("max_spread_points", 80))
+            max_spread = max_spread_map.get(self.symbol, self.cfg.get("trading", {}).get("spread_thresholds", {}).get(self.symbol, self.cfg.get("trading", {}).get("max_spread_points", 1000)))
 
             if symbol_info["spread_points"] > max_spread:
                 self.logger.info(
@@ -836,7 +1159,7 @@ class LiveTraderApp:
             # Implement actual broker order placement
             try:
                 from src.core.broker_mt5 import broker
-                
+
                 # Place order through MT5 broker
                 order_id = broker.place_order(
                     symbol=order_details.get('symbol', 'XAUUSD'),
@@ -845,16 +1168,16 @@ class LiveTraderApp:
                     entry_price=order_details.get('entry_price'),
                     sl=order_details.get('sl'),
                     tp=order_details.get('tp'),
-                    slippage=order_details.get('slippage', 20)
+                    slippage=order_details.get('slippage', 20),
                 )
-                
+
                 if order_id:
                     self.logger.info(f"Real order placed successfully: {order_id}")
                     return order_id
                 else:
                     self.logger.error("Failed to place real order")
                     return ""
-                    
+
             except Exception as e:
                 self.logger.error(f"Broker order placement error: {e}")
                 # Fallback to simulation
@@ -1013,7 +1336,9 @@ class LiveTraderApp:
                     used_fallback=True,
                 )
 
-    def _place_order(self, side: str, sl: float, tp: float, mode: str, lot_size: float = 0.01, entry: float = 0.0) -> bool:
+    def _place_order(
+        self, side: str, sl: float, tp: float, mode: str, lot_size: float = 0.01, entry: float = 0.0
+    ) -> bool:
         """Place trading order based on mode"""
         try:
             if mode in ["simulate", "demo"]:
@@ -1026,7 +1351,7 @@ class LiveTraderApp:
                 # Implement actual order placement
                 try:
                     from src.core.broker_mt5 import broker
-                    
+
                     # Place order through MT5 broker
                     order_id = broker.place_order(
                         symbol=self.symbol,
@@ -1035,16 +1360,16 @@ class LiveTraderApp:
                         entry_price=entry,
                         sl=sl,
                         tp=tp,
-                        slippage=20
+                        slippage=20,
                     )
-                    
+
                     if order_id:
                         self.logger.info(f"Live order placed successfully: {order_id}")
                         return True
                     else:
                         self.logger.error("Failed to place live order")
                         return False
-                        
+
                 except Exception as e:
                     self.logger.error(f"Live order placement error: {e}")
                 return False
@@ -1075,7 +1400,7 @@ class LiveTraderApp:
             entry=entry,
             sl=sl,
             tp=tp,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(UTC),
             result=result,
             used_fallback=extras.get('used_fallback', False),
             extras=extras,
@@ -1090,16 +1415,16 @@ class LiveTraderApp:
         # Save to CSV/SQLite if configured
         try:
             from src.core.database import db_manager
-            
+
             # Update trade in database with exit information
             trade_data = {
                 'exit_price': entry,  # Current price at exit
                 'profit': profit,
                 'balance': self.broker.get_equity() or self.broker.get_balance(),
                 'result_code': 1 if profit > 0 else -1,
-                'status': 'closed'
+                'status': 'closed',
             }
-            
+
             # Find the trade by symbol and side (this is a simplified approach)
             # In a real implementation, you'd track the trade ID
             trades_df = db_manager.get_trades(limit=1, status='open')
@@ -1107,12 +1432,13 @@ class LiveTraderApp:
                 trade_id = trades_df.iloc[0]['id']
                 db_manager.update_trade(trade_id, trade_data)
                 self.logger.info(f"Trade {trade_id} updated in database")
-            
+
             # Also save to CSV if configured
             csv_path = "data/trade_log.csv"
             import os
+
             os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-            
+
             trade_record = {
                 'timestamp': datetime.now().isoformat(),
                 'symbol': self.symbol,
@@ -1123,27 +1449,28 @@ class LiveTraderApp:
                 'tp': tp,
                 'lot_size': lot_size,
                 'profit': profit,
-                'result': result
+                'result': result,
             }
-            
+
             import pandas as pd
+
             df = pd.DataFrame([trade_record])
-            
+
             # Append to CSV
             if os.path.exists(csv_path):
                 df.to_csv(csv_path, mode='a', header=False, index=False)
             else:
                 df.to_csv(csv_path, index=False)
-                
+
             self.logger.info(f"Trade logged to CSV: {csv_path}")
-            
+
         except Exception as e:
             self.logger.error(f"Failed to save trade to database/CSV: {e}")
 
     def _mini_report(self) -> None:
         """Print compact status report"""
         print("\n" + "=" * 60)
-        print(f"MR BEN STATUS REPORT - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"MR BEN STATUS REPORT - {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
         print(f"Symbol: {self.symbol} | Mode: {self.args.mode}")
         print(f"Cycles: {self.cycle_count} | Trades: {self.metrics.trade_count}")
@@ -1211,9 +1538,12 @@ class LiveTraderApp:
             # Initial output to show the script is running
             print(f"🚀 MR BEN Live Trading System started for {self.symbol}")
             print(f"📊 Timeframe: {self.args.timeframe}, Mode: {self.args.mode}")
-            print(f"⏰ Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"⏰ Start time: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}")
 
             while True:
+                # Kill switch check
+                self._kill_switch_guard()
+
                 if self.args.max_cycles > 0 and self.cycle_count >= self.args.max_cycles:
                     self.logger.info(f"Reached max cycles ({self.args.max_cycles}), stopping")
                     print(f"🛑 Reached max cycles ({self.args.max_cycles}), stopping")
@@ -1223,7 +1553,7 @@ class LiveTraderApp:
                     self.cycle_count += 1
 
                     # Output cycle start to stdout for supervisor visibility
-                    print(f"🔄 Cycle {self.cycle_count} - {datetime.now().strftime('%H:%M:%S')}")
+                    print(f"🔄 Cycle {self.cycle_count} - {datetime.now(UTC).strftime('%H:%M:%S')}")
 
                     # Fetch multi-timeframe data
                     timeframes = self.mtf_params.get('timeframes', ['M5', 'M15', 'H1'])
@@ -1290,8 +1620,8 @@ class LiveTraderApp:
                 features.append(0.0)
 
             # Time-based features
-            features.append(float(datetime.now().hour / 24))  # Hour of day
-            features.append(float(datetime.now().weekday() / 7))  # Day of week
+            features.append(float(datetime.now(UTC).hour / 24))  # Hour of day
+            features.append(float(datetime.now(UTC).weekday() / 7))  # Day of week
 
             # Ensure we have exactly 10 features
             while len(features) < 10:
@@ -1307,7 +1637,7 @@ class LiveTraderApp:
     def finalize_report(self) -> None:
         """Generate final run report"""
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
             # JSON report
             report_data = {
@@ -1350,8 +1680,8 @@ class LiveTraderApp:
                     "used_fallback": getattr(self, 'last_order_fallback', False),
                 },
                 "timestamps": {
-                    "started": getattr(self, 'start_time', datetime.now()).isoformat(),
-                    "ended": datetime.now().isoformat(),
+                    "started": getattr(self, 'start_time', datetime.now(UTC)).isoformat(),
+                    "ended": datetime.now(UTC).isoformat(),
                 },
             }
 
@@ -1428,9 +1758,19 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--risk", type=float, default=None, help="Risk per trade override (e.g. 0.003)")
     p.add_argument("--supervisor", choices=["on", "off"], help="Override supervisor.enabled")
     p.add_argument("--challenge", choices=["on", "off"], help="Override challenge_mode.enabled")
-    p.add_argument("--json-logs", action="store_true", default=True, help="Enable structured JSON logging")
-    p.add_argument("--debug-scan-on-nosignal", action="store_true", help="Enable debug scan on no signal (DEMO only)")
-    p.add_argument("--demo-smoke-signal", action="store_true", help="Enable demo smoke signals for testing (DEMO only)")
+    p.add_argument(
+        "--json-logs", action="store_true", default=True, help="Enable structured JSON logging"
+    )
+    p.add_argument(
+        "--debug-scan-on-nosignal",
+        action="store_true",
+        help="Enable debug scan on no signal (DEMO only)",
+    )
+    p.add_argument(
+        "--demo-smoke-signal",
+        action="store_true",
+        help="Enable demo smoke signals for testing (DEMO only)",
+    )
     p.add_argument(
         "--max-risk-per-trade",
         type=float,
@@ -1482,7 +1822,7 @@ def load_json_config(config_path: str) -> dict[str, Any]:
 def load_config(config_path: str, args=None) -> dict[str, Any]:
     """Load and validate configuration file"""
     import os
-    
+
     config = load_json_config(config_path)
 
     # Set defaults if missing
@@ -1573,16 +1913,11 @@ def get_symbol_info(symbol: str) -> dict[str, Any]:
         # Get current spread and tick data
         tick = mt5.symbol_info_tick(symbol)
         spread_points = (tick.ask - tick.bid) / symbol_info.point if tick else 0
-        
+
         # Include tick data for percentage spread calculation
         tick_data = {}
         if tick:
-            tick_data = {
-                "ask": tick.ask,
-                "bid": tick.bid,
-                "time": tick.time,
-                "volume": tick.volume
-            }
+            tick_data = {"ask": tick.ask, "bid": tick.bid, "time": tick.time, "volume": tick.volume}
 
         return {
             "symbol": symbol,
@@ -1733,15 +2068,15 @@ def evaluate_once(
 ) -> tuple[Any, dict[str, Any]]:
     """Evaluate confluence strategy once and return signal with metadata"""
     from datetime import datetime
-    
+
     try:
         # Create context object for DEMO mode detection
         class Context:
             def __init__(self, is_demo=False):
                 self.is_demo = is_demo
-        
+
         ctx = Context(is_demo=not is_live_mode)
-        
+
         # Get symbol info
         try:
             symbol_info = get_symbol_info(symbol)
@@ -1749,7 +2084,10 @@ def evaluate_once(
             spread_display = symbol_info['spread_points']
             if symbol in cfg.get("symbols", {}).get("overrides", {}):
                 overrides = cfg["symbols"]["overrides"][symbol]
-                if overrides.get("asset_class") == "crypto" and overrides.get("spread_policy") == "percent":
+                if (
+                    overrides.get("asset_class") == "crypto"
+                    and overrides.get("spread_policy") == "percent"
+                ):
                     # Calculate percentage spread
                     tick_data = symbol_info.get("tick", {})
                     if tick_data and "ask" in tick_data and "bid" in tick_data:
@@ -1759,13 +2097,13 @@ def evaluate_once(
                             mid = (ask + bid) / 2
                             spread_pct = ((ask - bid) / mid) * 100
                             spread_display = f"{spread_pct:.3f}%"
-            
+
             print(
                 f"[INFO] Symbol ready: {symbol} | Digits={symbol_info['digits']} | Point={symbol_info['point']} | Spread={spread_display}"
             )
         except RuntimeError as e:
             print(f"❌ {e}")
-            return None, {"error": "symbol_info_failed", "timestamp": datetime.now().isoformat()}
+            return None, {"error": "symbol_info_failed", "timestamp": datetime.now(UTC).isoformat()}
 
         # Get timeframes from config
         timeframes = cfg.get("strategy", {}).get("timeframes", {"trend": "H1", "signal": "M15"})
@@ -1777,7 +2115,7 @@ def evaluate_once(
 
         if df_htf.empty or df_ltf.empty:
             print(f"❌ Failed to fetch real data for {symbol}")
-            return None, {"error": "data_fetch_failed", "timestamp": datetime.now().isoformat()}
+            return None, {"error": "data_fetch_failed", "timestamp": datetime.now(UTC).isoformat()}
 
         # Log closed bars information
         print(f"OHLC(ClosedBars): HTF={tf_trend} N={len(df_htf)}, LTF={tf_signal} N={len(df_ltf)}")
@@ -1787,26 +2125,32 @@ def evaluate_once(
         required_cols = {"time", "open", "high", "low", "close", "volume"}
         if not required_cols.issubset(df_ltf.columns) or not required_cols.issubset(df_htf.columns):
             print("[ERROR] Missing required OHLC columns")
-            return None, {"decision": "schema_error", "timestamp": datetime.now().isoformat()}
+            return None, {"decision": "schema_error", "timestamp": datetime.now(UTC).isoformat()}
 
         # Import and call confluence strategy
         from src.strategies.confluence_pro_strategy import confluence_signal
 
         # Add debug analysis if no signal is generated
-        debug_enabled = cfg.get("strategy", {}).get("debug_mode", False) or cfg.get("debug_scan_on_nosignal", False)
-        print(f"[DEBUG] debug_enabled: {debug_enabled}, debug_scan_on_nosignal: {cfg.get('debug_scan_on_nosignal', False)}")
+        debug_enabled = cfg.get("strategy", {}).get("debug_mode", False) or cfg.get(
+            "debug_scan_on_nosignal", False
+        )
+        print(
+            f"[DEBUG] debug_enabled: {debug_enabled}, debug_scan_on_nosignal: {cfg.get('debug_scan_on_nosignal', False)}"
+        )
 
         # Debug indicators before calling confluence_signal
         if debug_enabled:
             try:
-                from src.indicators.rsi_macd import compute_macd, compute_rsi
                 from src.indicators.atr import compute_atr
+                from src.indicators.rsi_macd import compute_macd, compute_rsi
 
                 rsi_ltf = compute_rsi(df_ltf, 14).iloc[-1]
                 macd_ltf, sig_ltf, hist_ltf = compute_macd(df_ltf)
                 macd_hist_ltf = hist_ltf.iloc[-1]
                 atr_ltf = compute_atr(df_ltf, 14).iloc[-1]
-                print(f"[DEBUG] LTF RSI={rsi_ltf:.1f} | MACD_hist={macd_hist_ltf:.6f} | ATR={atr_ltf:.5f}")
+                print(
+                    f"[DEBUG] LTF RSI={rsi_ltf:.1f} | MACD_hist={macd_hist_ltf:.6f} | ATR={atr_ltf:.5f}"
+                )
 
                 rsi_htf = compute_rsi(df_htf, 14).iloc[-1]
                 macd_htf, sig_htf, hist_htf = compute_macd(df_htf)
@@ -1815,7 +2159,9 @@ def evaluate_once(
             except Exception as e:
                 print(f"[DEBUG] inline-debug error: {e}")
 
-        print(f"[DEBUG] Calling confluence_signal with debug_nosignal={debug_enabled}, demo_smoke_signal={cfg.get('demo_smoke_signal', False)}")
+        print(
+            f"[DEBUG] Calling confluence_signal with debug_nosignal={debug_enabled}, demo_smoke_signal={cfg.get('demo_smoke_signal', False)}"
+        )
         signal = confluence_signal(
             df_ltf=df_ltf,
             df_htf=df_htf,
@@ -1832,34 +2178,36 @@ def evaluate_once(
         # Top-level failsafe SMOKE injection for DEMO mode
         if not signal and cfg.get("demo_smoke_signal", False) and getattr(ctx, "is_demo", False):
             print("[SMOKE] top-level fallback injection triggered (DEMO)")
-            
+
             # Create a simple SMOKE signal
             from datetime import datetime
+
             _last = df_ltf.iloc[-1]
             price = float(_last["close"])
             digits = symbol_info.get("digits", 5)
             point = symbol_info.get("point", 10**-digits)
-            
+
             # Simple side determination
             rsi_val = float(_last.get("rsi", 50.0))
             side = "long" if rsi_val >= 50 else "short"
-            
+
             # Simple SL/TP calculation
             pip = max(point, 1e-6)
             sl_pad = 5 * pip
             tp_pad = 5 * pip
-            
+
             if side == "long":
                 sl = round(price - sl_pad, digits)
                 tp = round(price + tp_pad, digits)
             else:
                 sl = round(price + sl_pad, digits)
                 tp = round(price - tp_pad, digits)
-            
+
             rr = round((abs(tp - price) / max(abs(price - sl), pip)), 2)
-            
+
             # Create failsafe signal
             from src.strategies.confluence_pro_strategy import Signal
+
             signal = Signal(
                 side=side,
                 confidence=0.60,
@@ -1874,32 +2222,41 @@ def evaluate_once(
                     "timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
                     "version": 1,
                     "demo_injection": True,
-                    "failsafe": True
-                }
+                    "failsafe": True,
+                },
             )
-            
-            print(f"[SMOKE] failsafe signal created | symbol={symbol} side={side} rr={rr:.2f} entry={price:.5f} sl={sl:.5f} tp={tp:.5f}")
+
+            print(
+                f"[SMOKE] failsafe signal created | symbol={symbol} side={side} rr={rr:.2f} entry={price:.5f} sl={sl:.5f} tp={tp:.5f}"
+            )
 
         # Debug analysis if no signal and debug mode is enabled
         if not signal and debug_enabled:
             try:
                 # Simple debug analysis without external dependencies
-                from src.strategies.confluence_pro_strategy import trend_context
                 from src.price_action.ict import build_ict_context
-                
+                from src.strategies.confluence_pro_strategy import trend_context
+
                 # HTF Trend analysis
                 tc = trend_context(df_htf, *cfg.get("strategy", {}).get("ema_periods", [50, 200]))
                 print(f"[DEBUG] HTF Trend: {tc['trend']}")
-                
+
                 # ICT Structure analysis
                 ict_cfg = cfg.get("strategy", {}).get("ict", {})
                 if ict_cfg:
-                    ict_ctx = build_ict_context(df_ltf.tail(ict_cfg.get("lookback", 200)).copy(), ict_cfg)
+                    ict_ctx = build_ict_context(
+                        df_ltf.tail(ict_cfg.get("lookback", 200)).copy(), ict_cfg
+                    )
                     print(f"[DEBUG] ICT Structure: {ict_ctx.structure_side}")
-                
+
                 # MACD analysis
                 from src.indicators.rsi_macd import compute_macd
-                macd_params = {k: v for k, v in cfg.get("strategy", {}).get("macd", {}).items() if k in ['fast', 'slow', 'signal']}
+
+                macd_params = {
+                    k: v
+                    for k, v in cfg.get("strategy", {}).get("macd", {}).items()
+                    if k in ['fast', 'slow', 'signal']
+                }
                 if macd_params:
                     # Check if close column exists
                     if 'close' in df_htf.columns:
@@ -1907,15 +2264,18 @@ def evaluate_once(
                         print(f"[DEBUG] MACD Hist HTF: {histogram.iloc[-1]:.6f}")
                     else:
                         print(f"[DEBUG] HTF columns: {list(df_htf.columns)}")
-                    
+
                     if 'close' in df_ltf.columns:
-                        macd_line_ltf, signal_line_ltf, histogram_ltf = compute_macd(df_ltf, **macd_params)
+                        macd_line_ltf, signal_line_ltf, histogram_ltf = compute_macd(
+                            df_ltf, **macd_params
+                        )
                         print(f"[DEBUG] MACD Hist LTF: {histogram_ltf.iloc[-1]:.6f}")
                     else:
                         print(f"[DEBUG] LTF columns: {list(df_ltf.columns)}")
-                
+
             except Exception as e:
                 import traceback
+
                 print(f"[DEBUG] Error in debug analysis: {e}")
                 print(f"[DEBUG] Traceback: {traceback.format_exc()}")
 
@@ -1923,46 +2283,53 @@ def evaluate_once(
         ctx_dict = {
             "market": {
                 "spread_points": symbol_info["spread_points"],
-                "point": symbol_info["point"]
+                "point": symbol_info["point"],
             },
             "indicators": {
                 "atr_m15_points": symbol_info.get("atr_points", 40),
-                "atr": symbol_info.get("atr", 0.0)
+                "atr": symbol_info.get("atr", 0.0),
             },
             "cooldown_ok": True,  # TODO: implement cooldown check
             "dd_soft_block": False,  # TODO: implement DD check
             "spread_ok": True,  # Will be checked by spread controller
-            "tech_ok": True,   # Default to True for basic signals
-            "pa_ok": True,     # Default to True for basic signals
-            "ml_prob": 0.0,    # Will be set by ML filter
-            "sup_ok": True,    # Will be set by supervisor
-            "rr": 1.5,         # Default RR
-            "direction": "flat"  # Will be set by strategy
+            "tech_ok": True,  # Default to True for basic signals
+            "pa_ok": True,  # Default to True for basic signals
+            "ml_prob": 0.0,  # Will be set by ML filter
+            "sup_ok": True,  # Will be set by supervisor
+            "rr": 1.5,  # Default RR
+            "direction": "flat",  # Will be set by strategy
         }
 
         # Add STEALTH strategy integration
         try:
             from src.strategies.stealth_strategy import StealthStrategy
+
             stealth = StealthStrategy(cfg)
             stealth_sig = stealth.generate(df_htf, df_ltf, symbol_info["point"])
-            
+
             if stealth_sig.ok:
-                ctx_dict.update({
-                    "tech_ok": stealth_sig.tech_ok,
-                    "pa_ok": stealth_sig.pa_ok,
-                    "direction": stealth_sig.direction,
-                    "rr": stealth_sig.rr
-                })
-                print(f"[STEALTH] Signal: {stealth_sig.direction} | tech_ok={stealth_sig.tech_ok} | pa_ok={stealth_sig.pa_ok} | rr={stealth_sig.rr:.2f}")
+                ctx_dict.update(
+                    {
+                        "tech_ok": stealth_sig.tech_ok,
+                        "pa_ok": stealth_sig.pa_ok,
+                        "direction": stealth_sig.direction,
+                        "rr": stealth_sig.rr,
+                    }
+                )
+                print(
+                    f"[STEALTH] Signal: {stealth_sig.direction} | tech_ok={stealth_sig.tech_ok} | pa_ok={stealth_sig.pa_ok} | rr={stealth_sig.rr:.2f}"
+                )
         except Exception as e:
             print(f"[WARNING] STEALTH strategy error: {e}")
             # Fallback to basic values
-            ctx_dict.update({
-                "tech_ok": True,  # Default to True for basic signals
-                "pa_ok": True,    # Default to True for basic signals
-                "direction": signal.side if signal else "flat",
-                "rr": signal.meta.get('rr', 1.5) if signal else 0.0
-            })
+            ctx_dict.update(
+                {
+                    "tech_ok": True,  # Default to True for basic signals
+                    "pa_ok": True,  # Default to True for basic signals
+                    "direction": signal.side if signal else "flat",
+                    "rr": signal.meta.get('rr', 1.5) if signal else 0.0,
+                }
+            )
 
         # Set ML probability based on direction
         if signal:
@@ -1986,19 +2353,21 @@ def evaluate_once(
         try:
             # Import broker if not available
             from src.core.broker_mt5 import broker
-            
+
             # Cooldown check
             ctx_dict["cooldown_ok"] = True  # TODO: implement proper cooldown check
-            
+
             # DD check
             equity = broker.get_equity() or broker.get_balance() or 0
-            peak_equity = getattr(challenge_state, 'equity_peak', equity) if challenge_state else equity
+            peak_equity = (
+                getattr(challenge_state, 'equity_peak', equity) if challenge_state else equity
+            )
             dd_pct = (peak_equity - equity) / peak_equity if peak_equity > 0 else 0
             ctx_dict["dd_soft_block"] = dd_pct >= cfg.get("risk", {}).get("dd_soft_from_peak", 0.06)
-            
+
             # Adaptive ML thresholds per symbol
             ml_min_base = cfg.get("signals", {}).get("min_conf", 0.75)
-            
+
             # Simple performance-based adjustment (can be enhanced with actual trade history)
             if symbol.startswith("XAU"):
                 # XAU tends to be more volatile, adjust threshold based on recent performance
@@ -2006,7 +2375,9 @@ def evaluate_once(
                 # Get ATR points safely
                 atr_points = 40  # Default fallback
                 try:
-                    atr_points = ctx_dict.get("market", {}).get("indicators", {}).get("atr_m15_points", 40)
+                    atr_points = (
+                        ctx_dict.get("market", {}).get("indicators", {}).get("atr_m15_points", 40)
+                    )
                 except:
                     atr_points = 40
                 ctx_dict["spread_cap_adaptive"] = min(80, 0.4 * atr_points + 8)
@@ -2017,7 +2388,7 @@ def evaluate_once(
             else:
                 ctx_dict["ml_min_effective"] = ml_min_base
                 ctx_dict["spread_cap_adaptive"] = 100  # Default cap
-            
+
             # Create supervisor snapshot
             ctx_dict["snapshot"] = {
                 "symbol": symbol,
@@ -2026,7 +2397,7 @@ def evaluate_once(
                 "rr": ctx_dict.get("rr", 0.0),
                 "spread": ctx_dict["market"]["spread_points"],
                 "equity": equity,
-                "base_risk": cfg.get("risk", {}).get("base_risk", 0.01)
+                "base_risk": cfg.get("risk", {}).get("base_risk", 0.01),
             }
         except Exception as e:
             print(f"[WARNING] Context enhancement error: {e}")
@@ -2036,9 +2407,9 @@ def evaluate_once(
             "symbol": symbol,
             "timeframes": {"trend": tf_trend, "signal": tf_signal},
             "symbol_info": symbol_info,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "has_signal": signal is not None,
-            "context": ctx_dict
+            "context": ctx_dict,
         }
 
         # Add challenge mode info
@@ -2062,28 +2433,35 @@ def evaluate_once(
             # Try STEALTH strategy for enhanced signals
             try:
                 from src.strategies.stealth_strategy import StealthStrategy
+
                 stealth = StealthStrategy(cfg)
                 stealth_sig = stealth.generate(df_htf, df_ltf, symbol_info["point"])
-                
+
                 if stealth_sig.ok:
-                    ctx_dict.update({
-                        "tech_ok": stealth_sig.tech_ok,
-                        "pa_ok": stealth_sig.pa_ok,
-                        "direction": stealth_sig.direction,
-                        "rr": stealth_sig.rr,
-                        "pro_signal": stealth_sig.ok
-                    })
-                    print(f"[STEALTH] Enhanced signal: {stealth_sig.direction} | tech_ok={stealth_sig.tech_ok} | pa_ok={stealth_sig.pa_ok} | rr={stealth_sig.rr:.2f}")
+                    ctx_dict.update(
+                        {
+                            "tech_ok": stealth_sig.tech_ok,
+                            "pa_ok": stealth_sig.pa_ok,
+                            "direction": stealth_sig.direction,
+                            "rr": stealth_sig.rr,
+                            "pro_signal": stealth_sig.ok,
+                        }
+                    )
+                    print(
+                        f"[STEALTH] Enhanced signal: {stealth_sig.direction} | tech_ok={stealth_sig.tech_ok} | pa_ok={stealth_sig.pa_ok} | rr={stealth_sig.rr:.2f}"
+                    )
             except Exception as e:
                 print(f"[WARNING] STEALTH strategy failed: {e}")
                 # Fallback to basic context
-                ctx_dict.update({
-                    "tech_ok": True,
-                    "pa_ok": True,
-                    "direction": signal.side,
-                    "rr": signal.meta.get('rr', 1.5),
-                    "pro_signal": True
-                })
+                ctx_dict.update(
+                    {
+                        "tech_ok": True,
+                        "pa_ok": True,
+                        "direction": signal.side,
+                        "rr": signal.meta.get('rr', 1.5),
+                        "pro_signal": True,
+                    }
+                )
 
             # ML probability (simplified for now)
             ml_prob_long = signal.confidence if signal.side == "long" else 0.0
@@ -2096,10 +2474,11 @@ def evaluate_once(
             # Supervisor snapshot
             try:
                 from src.core.broker_mt5 import broker
+
                 equity = broker.get_account_info().get("equity", 0.0)
             except:
                 equity = 0.0
-                
+
             ctx_dict["snapshot"] = {
                 "symbol": symbol,
                 "direction": signal.side,
@@ -2107,7 +2486,7 @@ def evaluate_once(
                 "rr": ctx_dict.get("rr", 0.0),
                 "spread": ctx_dict["market"]["spread_points"],
                 "equity": equity,
-                "base_risk": cfg["risk"]["base_risk"]
+                "base_risk": cfg["risk"]["base_risk"],
             }
 
             decision_meta.update(
@@ -2129,48 +2508,58 @@ def evaluate_once(
             # Check confidence threshold
             min_confidence = cfg.get("strategy", {}).get("min_confidence", 0.65)
             if signal.confidence < min_confidence:
-                print(f"[INFO] Signal rejected: low confidence {signal.confidence:.2f} < {min_confidence}")
+                print(
+                    f"[INFO] Signal rejected: low confidence {signal.confidence:.2f} < {min_confidence}"
+                )
                 return None, decision_meta
-            
+
             # Calculate trade cost (spread + commission) using real values
-            from src.execution.costs import CostModel
             from src.core.broker_mt5 import broker
-            
+            from src.execution.costs import CostModel
+
             spread_pts = symbol_info.get('spread_points', 0)
             point_val = broker.point_value(symbol)
             commission = float(cfg.get("costs", {}).get("commission_per_lot", 7.0))
             lots = signal.meta.get('lots', 0.01)
-            
+
             # Initial cost preview (before final sizing)
             cost_model = CostModel(spread_pts, commission, point_val)
             initial_cost = cost_model.estimate_trade_cost(lots)
-            
-            print(f"[INFO] Trade cost preview (initial): spread=${spread_pts * point_val * lots:.2f}, commission=${commission * lots:.2f}, total=${initial_cost:.2f}")
-            
+
+            print(
+                f"[INFO] Trade cost preview (initial): spread=${spread_pts * point_val * lots:.2f}, commission=${commission * lots:.2f}, total=${initial_cost:.2f}"
+            )
+
             # Final cost preview after position sizing
             final_lots = lots  # This would be the actual sized position
             final_cost = cost_model.estimate_trade_cost(final_lots)
-            
-            print(f"[INFO] Trade cost preview (final): lots={final_lots:.2f}, spread=${spread_pts * point_val * final_lots:.2f}, commission=${commission * final_lots:.2f}, total=${final_cost:.2f}")
-            
+
+            print(
+                f"[INFO] Trade cost preview (final): lots={final_lots:.2f}, spread=${spread_pts * point_val * final_lots:.2f}, commission=${commission * final_lots:.2f}, total=${final_cost:.2f}"
+            )
+
             # Cost gate check with final lots
             if hasattr(signal, 'expected_edge') and signal.expected_edge <= final_cost:
-                print(f"[INFO] Trade SKIPPED - Reason: negative_edge_after_costs (edge: ${signal.expected_edge:.2f} <= cost: ${final_cost:.2f})")
+                print(
+                    f"[INFO] Trade SKIPPED - Reason: negative_edge_after_costs (edge: ${signal.expected_edge:.2f} <= cost: ${final_cost:.2f})"
+                )
                 return None, decision_meta
-            
+
             print(
                 f"[INFO] Signal generated: {signal.side} | Confidence: {signal.confidence} | RR: {signal.meta.get('rr', 0):.2f}"
             )
         else:
             print("[INFO] No signal generated")
             # Initialize context for no-signal case
-            ctx_dict.update({
-                "tech_ok": False,
-                "pa_ok": False,
-                "direction": "flat",
-                "rr": 0.0,
-                "pro_signal": False
-            })
+            ctx_dict.update(
+                {
+                    "tech_ok": False,
+                    "pa_ok": False,
+                    "direction": "flat",
+                    "rr": 0.0,
+                    "pro_signal": False,
+                }
+            )
 
         return signal, decision_meta
 
@@ -2179,26 +2568,26 @@ def evaluate_once(
         import traceback
 
         traceback.print_exc()
-        return None, {"error": str(e), "timestamp": datetime.now().isoformat()}
+        return None, {"error": str(e), "timestamp": datetime.now(UTC).isoformat()}
 
 
 def manage_open_positions(symbol: str, broker, config: dict) -> dict:
     """Professional position management: Partial TP + Break-Even"""
     try:
         from src.core.broker_mt5 import broker as mt5_broker
-        
+
         # Get open positions for this symbol
         try:
             positions = broker.get_positions(symbol) if hasattr(broker, 'get_positions') else []
         except:
             positions = []
-        
+
         if not positions:
             return {"managed": 0, "actions": []}
-        
+
         actions = []
         managed_count = 0
-        
+
         for position in positions:
             ticket = position.get('ticket')
             current_price = position.get('price', 0)
@@ -2207,10 +2596,10 @@ def manage_open_positions(symbol: str, broker, config: dict) -> dict:
             tp = position.get('tp', 0)
             volume = position.get('volume', 0)
             profit = position.get('profit', 0)
-            
+
             if not ticket or not current_price or not entry_price:
                 continue
-                
+
             # Calculate current R (risk-reward ratio)
             if sl > 0:
                 risk_distance = abs(entry_price - sl)
@@ -2218,7 +2607,7 @@ def manage_open_positions(symbol: str, broker, config: dict) -> dict:
                 current_R = profit_distance / risk_distance if risk_distance > 0 else 0
             else:
                 current_R = 0
-            
+
             # Check for Partial TP at R >= 1.0
             if current_R >= 1.0 and not position.get('tp_half_done', False):
                 try:
@@ -2231,14 +2620,18 @@ def manage_open_positions(symbol: str, broker, config: dict) -> dict:
                         managed_count += 1
                 except Exception as e:
                     print(f"[WARNING] Partial TP failed for {ticket}: {e}")
-            
+
             # Check for Break-Even at R >= 0.8
             elif current_R >= 0.8 and not position.get('be_done', False):
                 try:
                     # Move SL to BE + small offset
                     offset = risk_distance * 0.1  # 10% of initial risk as offset
-                    new_sl = entry_price + offset if position.get('type', 0) == 0 else entry_price - offset
-                    
+                    new_sl = (
+                        entry_price + offset
+                        if position.get('type', 0) == 0
+                        else entry_price - offset
+                    )
+
                     result = mt5_broker.modify_position(ticket, new_sl, tp)
                     if result:
                         actions.append(f"Break-Even: {ticket} (R={current_R:.2f})")
@@ -2246,13 +2639,9 @@ def manage_open_positions(symbol: str, broker, config: dict) -> dict:
                         managed_count += 1
                 except Exception as e:
                     print(f"[WARNING] Break-Even failed for {ticket}: {e}")
-        
-        return {
-            "managed": managed_count,
-            "actions": actions,
-            "total_positions": len(positions)
-        }
-        
+
+        return {"managed": managed_count, "actions": actions, "total_positions": len(positions)}
+
     except Exception as e:
         print(f"[ERROR] Position management failed: {e}")
         return {"managed": 0, "actions": [], "error": str(e)}
@@ -2272,10 +2661,12 @@ def _notify_skip(reason: str, meta: dict[str, Any]) -> None:
         "portfolio": meta.get("portfolio", {"open_risk_value": 0.0, "equity": 84985.01}),
         "filters": meta.get("filters", {"min_rr": 1.0, "max_spread_points": 80}),
         "news_block": meta.get("news_block", False),
-        "challenge": meta.get("challenge", {"enabled": True, "trades_today": 0, "consecutive_losses": 0}),
+        "challenge": meta.get(
+            "challenge", {"enabled": True, "trades_today": 0, "consecutive_losses": 0}
+        ),
         "cb_order": meta.get("cb_order", {"open": False, "recent_errors": 0}),
         "cfg": meta.get("cfg", {"risk_pct": 0.005, "max_concurrent_positions": 1}),
-        "mode": meta.get("mode", "DEMO")
+        "mode": meta.get("mode", "DEMO"),
     }
     on_skip(reason, skip_meta)
 
@@ -2290,7 +2681,7 @@ def maybe_execute_trade(
 ) -> str | None:
     """Execute trade if conditions are met, return order_id or None"""
     global CHALLENGE_STATE
-    
+
     if not signal:
         return None
 
@@ -2308,10 +2699,12 @@ def maybe_execute_trade(
             "portfolio": meta.get("portfolio", {"open_risk_value": 0.0, "equity": 84985.01}),
             "filters": meta.get("filters", {"min_rr": 1.0, "max_spread_points": 80}),
             "news_block": meta.get("news_block", False),
-            "challenge": meta.get("challenge", {"enabled": True, "trades_today": 0, "consecutive_losses": 0}),
+            "challenge": meta.get(
+                "challenge", {"enabled": True, "trades_today": 0, "consecutive_losses": 0}
+            ),
             "cb_order": meta.get("cb_order", {"open": False, "recent_errors": 0}),
             "cfg": meta.get("cfg", {"risk_pct": 0.005, "max_concurrent_positions": 1}),
-            "mode": meta.get("mode", "DEMO")
+            "mode": meta.get("mode", "DEMO"),
         }
         on_signal(signal_meta)
 
@@ -2339,18 +2732,23 @@ def maybe_execute_trade(
         symbol = meta["symbol"]
         try:
             from src.core.filters.spread_filter import SpreadFilter
+
             spread_filter = SpreadFilter(cfg)
             tick_data = meta["symbol_info"].get("tick", {})
-            
+
             # Debug logging for spread check
-            print(f"[DEBUG] Spread check for {symbol}: points={meta['symbol_info'].get('spread_points', 0)}")
+            print(
+                f"[DEBUG] Spread check for {symbol}: points={meta['symbol_info'].get('spread_points', 0)}"
+            )
             if tick_data:
-                print(f"[DEBUG] Tick data available: ask={tick_data.get('ask', 'N/A')}, bid={tick_data.get('bid', 'N/A')}")
+                print(
+                    f"[DEBUG] Tick data available: ask={tick_data.get('ask', 'N/A')}, bid={tick_data.get('bid', 'N/A')}"
+                )
             else:
-                print(f"[DEBUG] No tick data available, using points-based check")
-            
+                print("[DEBUG] No tick data available, using points-based check")
+
             spread_result = spread_filter.check_spread(symbol, meta["symbol_info"], tick_data)
-            
+
             if not spread_result.passed:
                 meta["skip_reason"] = spread_result.reason
                 _notify_skip(meta["skip_reason"], meta)
@@ -2365,13 +2763,13 @@ def maybe_execute_trade(
                 return None
             else:
                 print(f"[INFO] Spread check passed for {symbol}: {spread_result.reason}")
-                
+
         except Exception as e:
             print(f"[WARNING] Error in enhanced spread check for {symbol}: {e}")
             # Fallback to simple points check
             current_spread = meta["symbol_info"]["spread_points"]
             max_spread_map = filters.get("max_spread_points_map", {})
-            max_spread = max_spread_map.get(symbol, filters.get("max_spread_points", 80))
+            max_spread = max_spread_map.get(symbol, cfg.get("trading", {}).get("spread_thresholds", {}).get(symbol, cfg.get("trading", {}).get("max_spread_points", 1000)))
             if current_spread > max_spread:
                 meta["skip_reason"] = f"spread {current_spread:.1f} > {max_spread} (fallback)"
                 _notify_skip(meta["skip_reason"], meta)
@@ -2393,17 +2791,27 @@ def maybe_execute_trade(
                 if CHALLENGE_STATE is None:
                     CHALLENGE_STATE = initialize_challenge_state(broker)
 
-                ok, reason = guard_challenge(cfg, broker, CHALLENGE_STATE, meta["symbol"], now_utc, services)
+                ok, reason = guard_challenge(
+                    cfg, broker, CHALLENGE_STATE, meta["symbol"], now_utc, services
+                )
                 if not ok:
                     meta["skip_reason"] = f"challenge: {reason}"
                     _notify_skip(meta["skip_reason"], meta)
-                    log_exec({"phase": "skip", "symbol": meta["symbol"], "reason": meta.get("skip_reason")})
+                    log_exec(
+                        {
+                            "phase": "skip",
+                            "symbol": meta["symbol"],
+                            "reason": meta.get("skip_reason"),
+                        }
+                    )
                     print(f"[INFO] Challenge guard blocked: {reason}")
                     return None
             except Exception as e:
                 meta["skip_reason"] = f"challenge_error: {e}"
                 _notify_skip(meta["skip_reason"], meta)
-                log_exec({"phase": "skip", "symbol": meta["symbol"], "reason": meta.get("skip_reason")})
+                log_exec(
+                    {"phase": "skip", "symbol": meta["symbol"], "reason": meta.get("skip_reason")}
+                )
                 print(f"⚠️ Challenge guard error: {e}")
                 return None
 
@@ -2426,8 +2834,14 @@ def maybe_execute_trade(
             return None
 
         # SMOKE signal bypass for DEMO mode
-        if hasattr(signal, 'meta') and signal.meta.get("source") == "smoke" and getattr(ctx, "is_demo", False):
-            print(f"[SMOKE] risk gate bypass (DEMO) | symbol={signal.meta.get('symbol', 'UNKNOWN')}")
+        if (
+            hasattr(signal, 'meta')
+            and signal.meta.get("source") == "smoke"
+            and getattr(ctx, "is_demo", False)
+        ):
+            print(
+                f"[SMOKE] risk gate bypass (DEMO) | symbol={signal.meta.get('symbol', 'UNKNOWN')}"
+            )
             # Skip all risk checks for SMOKE signals in DEMO mode
             pass
         else:
@@ -2450,7 +2864,9 @@ def maybe_execute_trade(
                             "reason": meta.get("skip_reason"),
                         }
                     )
-                    print(f"[RISK] Blocked by portfolio risk: {open_risk_value:.2f} / {equity_now:.2f}")
+                    print(
+                        f"[RISK] Blocked by portfolio risk: {open_risk_value:.2f} / {equity_now:.2f}"
+                    )
                     return None
             except Exception as e:
                 print(f"⚠️ Portfolio risk check error: {e}")
@@ -2543,14 +2959,19 @@ def maybe_execute_trade(
                 balance = broker.get_equity() or broker.get_balance()
 
             # Import price planner
-            from src.core.price_planner import plan_sl_tp, SymbolMeta, validate_sl_tp_orientation, calculate_real_rr
-            
+            from src.core.price_planner import (
+                SymbolMeta,
+                calculate_real_rr,
+                plan_sl_tp,
+                validate_sl_tp_orientation,
+            )
+
             # Get current tick data for accurate entry prices
             tick = mt5.symbol_info_tick(symbol)
             if not tick:
                 print(f"[ERROR] No tick data available for {symbol}")
                 return None
-            
+
             # Calculate SL/TP levels using proper price planner
             atr_val = meta.get("atr", 0)
             atr_cfg = strategy_cfg.get("atr", {})
@@ -2559,16 +2980,16 @@ def maybe_execute_trade(
             min_stop_points = atr_cfg.get("min_stop_points", 10.0)
             min_stop_pct = atr_cfg.get("min_stop_pct", 0.0025)
             spread_mult = atr_cfg.get("spread_mult", 2.0)
-            
+
             # Create symbol metadata
             symbol_meta = SymbolMeta(
                 point=meta["symbol_info"]["point"],
                 digits=meta["symbol_info"]["digits"],
                 tick_size=meta["symbol_info"].get("tick_size", meta["symbol_info"]["point"]),
                 spread_points=meta["symbol_info"]["spread_points"],
-                contract_size=meta["symbol_info"].get("contract_size", 1.0)
+                contract_size=meta["symbol_info"].get("contract_size", 1.0),
             )
-            
+
             # Plan SL/TP with correct orientation
             entry_price, sl_price, tp_price = plan_sl_tp(
                 side=signal.side,
@@ -2580,17 +3001,21 @@ def maybe_execute_trade(
                 atr_k=atr_k,
                 min_stop_points=min_stop_points,
                 min_stop_pct=min_stop_pct,
-                spread_mult=spread_mult
+                spread_mult=spread_mult,
             )
-            
+
             # Validate orientation
             if not validate_sl_tp_orientation(signal.side, entry_price, sl_price, tp_price):
-                print(f"[ERROR] Invalid SL/TP orientation for {signal.side}: entry={entry_price:.5f}, sl={sl_price:.5f}, tp={tp_price:.5f}")
+                print(
+                    f"[ERROR] Invalid SL/TP orientation for {signal.side}: entry={entry_price:.5f}, sl={sl_price:.5f}, tp={tp_price:.5f}"
+                )
                 return None
-            
+
             # Calculate real RR
             real_rr = calculate_real_rr(entry_price, sl_price, tp_price, signal.side)
-            print(f"[DEBUG] SL/TP Plan: {signal.side} | entry={entry_price:.5f} | sl={sl_price:.5f} | tp={tp_price:.5f} | RR={real_rr:.2f}")
+            print(
+                f"[DEBUG] SL/TP Plan: {signal.side} | entry={entry_price:.5f} | sl={sl_price:.5f} | tp={tp_price:.5f} | RR={real_rr:.2f}"
+            )
 
             # Calculate position size
             sl_points = abs(entry_price - sl_price) / meta["symbol_info"]["point"]
@@ -2603,17 +3028,25 @@ def maybe_execute_trade(
                 # Cap crypto position size to reasonable levels
                 max_crypto_lots = 1.0  # Maximum 1 lot for crypto
                 lots = min(lots * 0.75, max_crypto_lots)  # 75% of calculated size, max 1 lot
-                print(f"[INFO] ADAUSD position size normalized: {lots:.2f} lots (capped at {max_crypto_lots})")
+                print(
+                    f"[INFO] ADAUSD position size normalized: {lots:.2f} lots (capped at {max_crypto_lots})"
+                )
 
             # Store for reporting
             meta["position_size"] = float(lots)
 
             # Comprehensive logging for SL/TP plan
-            print(f"[INFO] ORDER_PLAN_RESULT | side={signal.side} | entry={entry_price:.5f} | sl={sl_price:.5f} | tp={tp_price:.5f} | ok=True | reason=calculated")
-            print(f"[INFO] Trade calculated: {signal.side} {lots:.2f} lots | SL: {sl_price:.5f} | TP: {tp_price:.5f} | RR: {real_rr:.2f}")
-            
+            print(
+                f"[INFO] ORDER_PLAN_RESULT | side={signal.side} | entry={entry_price:.5f} | sl={sl_price:.5f} | tp={tp_price:.5f} | ok=True | reason=calculated"
+            )
+            print(
+                f"[INFO] Trade calculated: {signal.side} {lots:.2f} lots | SL: {sl_price:.5f} | TP: {tp_price:.5f} | RR: {real_rr:.2f}"
+            )
+
             # Log detailed plan information
-            print(f"[DEBUG] PLAN | {symbol} | side={signal.side} entry={entry_price:.5f} sl={sl_price:.5f} tp={tp_price:.5f} rr={real_rr:.2f} atr={atr_val:.5f} spread={symbol_meta.spread_points*symbol_meta.point:.5f}")
+            print(
+                f"[DEBUG] PLAN | {symbol} | side={signal.side} entry={entry_price:.5f} sl={sl_price:.5f} tp={tp_price:.5f} rr={real_rr:.2f} atr={atr_val:.5f} spread={symbol_meta.spread_points*symbol_meta.point:.5f}"
+            )
 
             # Circuit-Breaker gate
             if not cb_order.allow():
@@ -2642,16 +3075,26 @@ def maybe_execute_trade(
             # Final validation before order placement
             assert rr >= 1.0, f"Invalid RR: {rr} < 1.0"
             if signal.side == "long":
-                assert sl_price < entry_price < tp_price, f"Invalid long plan sl={sl_price} entry={entry_price} tp={tp_price}"
+                assert (
+                    sl_price < entry_price < tp_price
+                ), f"Invalid long plan sl={sl_price} entry={entry_price} tp={tp_price}"
             else:
-                assert tp_price < entry_price < sl_price, f"Invalid short plan sl={sl_price} entry={entry_price} tp={tp_price}"
-            
+                assert (
+                    tp_price < entry_price < sl_price
+                ), f"Invalid short plan sl={sl_price} entry={entry_price} tp={tp_price}"
+
             # SMOKE signal special handling for DEMO mode
-            if hasattr(signal, 'meta') and signal.meta.get("source") == "smoke" and getattr(meta.get("ctx"), "is_demo", False):
+            if (
+                hasattr(signal, 'meta')
+                and signal.meta.get("source") == "smoke"
+                and getattr(meta.get("ctx"), "is_demo", False)
+            ):
                 # Use smaller lot size for SMOKE signals
                 smoke_lot = getattr(cfg.get("testing", {}), "smoke_signal_lot", 0.01)
                 lots = min(lots, smoke_lot)
-                print(f"[SMOKE] executing demo order | symbol={meta['symbol']} side={signal.side} lot={lots:.2f}")
+                print(
+                    f"[SMOKE] executing demo order | symbol={meta['symbol']} side={signal.side} lot={lots:.2f}"
+                )
 
             # Place actual order with broker using execution module
             try:
@@ -2694,7 +3137,7 @@ def maybe_execute_trade(
                                 "sl": sl_price,
                                 "tp": tp_price,
                                 "lots": lots,
-                                "time": datetime.now().isoformat(),
+                                "time": datetime.now(UTC).isoformat(),
                             }
                             save_state(app_state)
                         except Exception as e:
@@ -2948,22 +3391,24 @@ def write_report(run_meta: dict[str, Any]) -> None:
 def main() -> None:
     """Main entry point for MR BEN Live Trading System"""
     global CHALLENGE_STATE
-    
+
     try:
         # Parse command line arguments
         args = parse_args()
-        
+
         # Set demo mode environment variable for supervisor
         if args.demo or args.report_only:
             os.environ["MRBEN_DEMO_MODE"] = "true"
-        
+
         # Initialize JSON logger if enabled
         if args.json_logs:
             from src.core.json_logger import json_logger
+
             json_logger.enabled = True
             print(f"[INFO] Structured JSON logging enabled: {json_logger.log_file}")
         else:
             from src.core.json_logger import json_logger
+
             json_logger.enabled = False
 
         # Set up logging
@@ -2973,7 +3418,7 @@ def main() -> None:
 
         # Load configuration first
         config = load_config(args.config, args)
-        
+
         # Resolve symbols early and persist
         symbols = [s.strip() for s in (args.symbol or "").split(",") if s.strip()]
         if not symbols:
@@ -2981,9 +3426,9 @@ def main() -> None:
         symbols = list(dict.fromkeys(symbols))  # dedupe keep order
         if not symbols:
             raise SystemExit("No symbols provided")
-        
+
         print(f"[INFO] Trading symbols: {symbols}")
-        
+
         # Validate EACH symbol; never validate the raw CLI string
         def validate_symbol(symbol: str) -> None:
             """Validate symbol against supported list"""
@@ -2991,13 +3436,14 @@ def main() -> None:
             if symbol not in supported_symbols:
                 print(f"❌ Symbol '{symbol}' not in supported list: {supported_symbols}")
                 raise SystemExit(f"Unsupported symbol: {symbol}")
-        
+
         for _s in symbols:
             validate_symbol(_s)
-        
+
         # Initialize market hours manager for crypto support
         try:
             from src.core.market_hours import initialize_market_hours
+
             initialize_market_hours(config)
             print("✅ Market hours manager initialized for crypto support")
         except Exception as e:
@@ -3028,17 +3474,17 @@ def main() -> None:
                     config[key] = value
             print(f"[INFO] Applied profile: {args.profile}")
             if args.profile == "production":
-                print(f"[INFO] Active profile: production (no fallback applied)")
+                print("[INFO] Active profile: production (no fallback applied)")
 
         # Override risk from CLI if provided
         if args.risk is not None:
             config.setdefault("risk", {})["risk_pct"] = float(args.risk)
-        
+
         # Override max concurrent positions from CLI if provided
         if hasattr(args, 'max_orders') and args.max_orders is not None:
             config.setdefault("risk", {})["max_concurrent_positions"] = args.max_orders
             print(f"[INFO] Max concurrent positions overridden to: {args.max_orders}")
-        
+
         # Override supervisor from CLI if provided
         if args.supervisor == "on":
             config.setdefault("supervisor", {})["enabled"] = True
@@ -3126,7 +3572,7 @@ def main() -> None:
         try:
             challenge_state = initialize_challenge_state(broker)
             print(f"✅ Challenge mode initialized - Equity: {challenge_state.equity_peak:.2f}")
-            
+
             # Set global challenge state
             CHALLENGE_STATE = challenge_state
         except Exception as e:
@@ -3149,19 +3595,21 @@ def main() -> None:
         # Report-only mode
         if args.report_only:
             print(f"[INFO] Report-only mode: evaluating {symbol} once...")
-            
+
             # Add debug flag to config
             config["debug_scan_on_nosignal"] = getattr(args, 'debug_scan_on_nosignal', False)
             config["demo_smoke_signal"] = getattr(args, 'demo_smoke_signal', False)
 
             # Single evaluation
-            signal, decision_meta = evaluate_once(symbol, config, services, challenge_state, args.live)
+            signal, decision_meta = evaluate_once(
+                symbol, config, services, challenge_state, args.live
+            )
 
             # Build run metadata
             run_meta = {
                 "symbol": symbol,
                 "mode": "DEMO" if args.demo else "LIVE",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "strategy_config": config.get("strategy", {}),
                 "risk_config": config.get("risk", {}),
                 "evaluation": decision_meta,
@@ -3187,7 +3635,7 @@ def main() -> None:
         class Context:
             def __init__(self, is_demo=False):
                 self.is_demo = is_demo
-        
+
         ctx = Context(is_demo=not args.live)
 
         # Initialize enhanced components
@@ -3203,7 +3651,7 @@ def main() -> None:
             try:
                 cycle_count += 1
                 print(
-                    f"\n[INFO] Trading cycle {cycle_count} - {datetime.now().strftime('%H:%M:%S')}"
+                    f"\n[INFO] Trading cycle {cycle_count} - {datetime.now(UTC).strftime('%H:%M:%S')}"
                 )
 
                 # Kill-switch check (beginning of each cycle)
@@ -3215,15 +3663,18 @@ def main() -> None:
 
                 # Config lock check - disabled for production trading
                 lock_enabled = False  # Disabled for production trading
-                ok_cfg, reason_cfg = enforce_config_lock(args.config, lock_enabled=lock_enabled)
-                if not ok_cfg:
-                    send_alert(
-                        "Config Lock Violation",
-                        reason_cfg,
-                        level="CRITICAL",
-                        extra={"config": args.config},
-                    )
+                try:
+                    ok_cfg, reason_cfg = enforce_config_lock(args.config, lock_enabled=lock_enabled)
+                    if not ok_cfg:
+                        send_alert(
+                            "Config Lock Violation",
+                            reason_cfg,
+                            level="CRITICAL",
+                            extra={"config": args.config},
+                        )
                     print("[ERROR] " + reason_cfg)
+                except Exception as e:
+                    logging.getLogger(__name__).warning(f"Config lock not enforced: {e}")
                     break
 
                 # Update challenge state for new day
@@ -3247,69 +3698,90 @@ def main() -> None:
                         "challenge": {
                             "enabled": config.get("challenge_mode", {}).get("enabled", True),
                             "trades_today": challenge_state.trades_today if challenge_state else 0,
-                            "consecutive_losses": challenge_state.consecutive_losses if challenge_state else 0
+                            "consecutive_losses": (
+                                challenge_state.consecutive_losses if challenge_state else 0
+                            ),
                         },
                         "cfg": {
                             "risk_pct": config.get("risk", {}).get("risk_pct", 0.005),
-                            "max_concurrent_positions": config.get("risk", {}).get("max_concurrent_positions", 1)
+                            "max_concurrent_positions": config.get("risk", {}).get(
+                                "max_concurrent_positions", 1
+                            ),
                         },
-                        "mode": "DEMO" if args.demo else "LIVE"
+                        "mode": "DEMO" if args.demo else "LIVE",
                     }
                     on_cycle(cycle_meta)
-                    
+
                     # Supervisor emit: cycle event (non-blocking)
-                    supervisor_emit("cycle", {
-                        "symbol": symbol,
-                        "spread_points": symbol_info_cycle["spread_points"],
-                        "positions": {"open": 0},  # Will be updated after position check
-                        "portfolio": {"equity": broker.get_equity() or broker.get_balance(), "open_risk_value": 0},
-                        "filters": config.get("strategy", {}).get("filters", {}),
-                        "challenge": {"enabled": config.get("challenge_mode", {}).get("enabled", False)},
-                        "cb_order": {"open": False, "recent_errors": 0},  # Will be updated later
-                        "mode": "LIVE" if not args.demo else "DEMO"
-                    })
+                    supervisor_emit(
+                        "cycle",
+                        {
+                            "symbol": symbol,
+                            "spread_points": symbol_info_cycle["spread_points"],
+                            "positions": {"open": 0},  # Will be updated after position check
+                            "portfolio": {
+                                "equity": broker.get_equity() or broker.get_balance(),
+                                "open_risk_value": 0,
+                            },
+                            "filters": config.get("strategy", {}).get("filters", {}),
+                            "challenge": {
+                                "enabled": config.get("challenge_mode", {}).get("enabled", False)
+                            },
+                            "cb_order": {
+                                "open": False,
+                                "recent_errors": 0,
+                            },  # Will be updated later
+                            "mode": "LIVE" if not args.demo else "DEMO",
+                        },
+                    )
 
                     # Add debug flag to config
-                    config["debug_scan_on_nosignal"] = getattr(args, 'debug_scan_on_nosignal', False)
+                    config["debug_scan_on_nosignal"] = getattr(
+                        args, 'debug_scan_on_nosignal', False
+                    )
                     config["demo_smoke_signal"] = getattr(args, 'demo_smoke_signal', False)
 
                     # Single evaluation
-                    signal, decision_meta = evaluate_once(symbol, config, services, challenge_state, args.live)
+                    signal, decision_meta = evaluate_once(
+                        symbol, config, services, challenge_state, args.live
+                    )
 
                     # Enhanced components integration
                     if signal and decision_meta.get("context"):
                         ctx_dict = decision_meta["context"]
-                        
+
                         # Supervisor heartbeat
                         sup.heartbeat()
-                        
+
                         # Spread debounce check
                         if not spread_ctl.ok(symbol, ctx_dict):
                             spread_reason = ctx_dict.get("spread_reason", "spread_high")
                             print(f"[INFO] Trade SKIPPED - Reason: {spread_reason}")
                             signal = None
                             decision_meta["skip_reason"] = spread_reason
-                        
+
                         # Soft DD gate check
                         if ctx_dict.get("dd_soft_block", False):
-                            print(f"[INFO] Trade SKIPPED - Reason: dd_soft_block")
+                            print("[INFO] Trade SKIPPED - Reason: dd_soft_block")
                             signal = None
                             decision_meta["skip_reason"] = "dd_soft_block"
-                        
+
                         # Supervisor decision - always call for heartbeat
                         sv = sup.decide(ctx_dict.get("snapshot", {}))
                         ctx_dict["sup_ok"] = sv.allow
-                        if sv.tweaks and config.get("supervisor", {}).get("allow_param_tweaks", True):
+                        if sv.tweaks and config.get("supervisor", {}).get(
+                            "allow_param_tweaks", True
+                        ):
                             # Apply tweaks to config
                             for key, value in sv.tweaks.items():
                                 if key in config:
                                     config[key] = value
-                        
+
                         if not sv.allow:
-                            print(f"[INFO] Trade SKIPPED - Reason: supervisor_block")
+                            print("[INFO] Trade SKIPPED - Reason: supervisor_block")
                             signal = None
                             decision_meta["skip_reason"] = "supervisor_block"
-                        
+
                         # All-of-Four gate check
                         if signal:
                             decision = gate.decide(symbol, ctx_dict)
@@ -3317,29 +3789,38 @@ def main() -> None:
                                 print(f"[INFO] Trade SKIPPED - Reason: {decision.reason}")
                                 signal = None
                                 decision_meta["skip_reason"] = decision.reason
-                        
+
                         # Concurrency cap check
                         if signal and not limit.can_open(symbol):
                             # When cap is full, manage existing positions instead of generating new signals
                             position_mgmt = manage_open_positions(symbol, broker, config)
                             if position_mgmt["managed"] > 0:
-                                print(f"[INFO] Cap full - Managed {position_mgmt['managed']} positions: {', '.join(position_mgmt['actions'])}")
+                                print(
+                                    f"[INFO] Cap full - Managed {position_mgmt['managed']} positions: {', '.join(position_mgmt['actions'])}"
+                                )
                             else:
-                                print(f"[INFO] Trade SKIPPED - Reason: cap_full_manage_only (no positions to manage)")
+                                print(
+                                    "[INFO] Trade SKIPPED - Reason: cap_full_manage_only (no positions to manage)"
+                                )
                             signal = None
                             decision_meta["skip_reason"] = "cap_full_manage_only"
 
                     # Supervisor emit: signal event (if signal exists)
                     if signal:
-                        supervisor_emit("signal", {
-                            "symbol": symbol,
-                            "rr": decision_meta.get("risk_reward", 0),
-                            "rsi": decision_meta.get("rsi", 0),
-                            "atr": decision_meta.get("atr", 0),
-                            "trend": decision_meta.get("trend", "unknown"),
-                            "ict": {"structure_side": decision_meta.get("ict_structure", "unknown")},
-                            "mode": "LIVE" if not args.demo else "DEMO"
-                        })
+                        supervisor_emit(
+                            "signal",
+                            {
+                                "symbol": symbol,
+                                "rr": decision_meta.get("risk_reward", 0),
+                                "rsi": decision_meta.get("rsi", 0),
+                                "atr": decision_meta.get("atr", 0),
+                                "trend": decision_meta.get("trend", "unknown"),
+                                "ict": {
+                                    "structure_side": decision_meta.get("ict_structure", "unknown")
+                                },
+                                "mode": "LIVE" if not args.demo else "DEMO",
+                            },
+                        )
 
                     # Execute trade if signal exists
                     order_id = None
@@ -3347,33 +3828,41 @@ def main() -> None:
                         order_id = maybe_execute_trade(
                             signal, decision_meta, config, services, app_state, ctx
                         )
-                        
+
                         # Concurrency tracking
                         if order_id:
                             limit.on_open(symbol)
-                        
+
                         # Supervisor emit: fill or skip event
                         if order_id:
-                            supervisor_emit("fill", {
-                                "symbol": symbol,
-                                "order_id": order_id,
-                                "fill_price": 0.0,  # Will be updated with actual fill price
-                                "mode": "LIVE" if not args.demo else "DEMO"
-                            })
+                            supervisor_emit(
+                                "fill",
+                                {
+                                    "symbol": symbol,
+                                    "order_id": order_id,
+                                    "fill_price": 0.0,  # Will be updated with actual fill price
+                                    "mode": "LIVE" if not args.demo else "DEMO",
+                                },
+                            )
                         else:
-                            supervisor_emit("skip", {
-                                "symbol": symbol,
-                            "reason": decision_meta.get("skip_reason", "unknown"),
-                            "rr": decision_meta.get("risk_reward", 0),
-                            "spread_points": decision_meta.get("symbol_info", {}).get("spread_points", 0),
-                            "mode": "LIVE" if not args.demo else "DEMO"
-                            })
+                            supervisor_emit(
+                                "skip",
+                                {
+                                    "symbol": symbol,
+                                    "reason": decision_meta.get("skip_reason", "unknown"),
+                                    "rr": decision_meta.get("risk_reward", 0),
+                                    "spread_points": decision_meta.get("symbol_info", {}).get(
+                                        "spread_points", 0
+                                    ),
+                                    "mode": "LIVE" if not args.demo else "DEMO",
+                                },
+                            )
 
                     # Build run metadata for this cycle
                     run_meta = {
                         "symbol": symbol,
                         "mode": "DEMO" if args.demo else "LIVE",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "strategy_config": config.get("strategy", {}),
                         "risk_config": config.get("risk", {}),
                         "evaluation": decision_meta,
@@ -3384,9 +3873,11 @@ def main() -> None:
                         },
                         "trade_decision": {
                             "order_id": order_id,
-                            "execution_time": datetime.now().isoformat() if order_id else None,
+                            "execution_time": datetime.now(UTC).isoformat() if order_id else None,
                             "skip_reason": (
-                                decision_meta.get("skip_reason", "No signal") if not order_id else None
+                                decision_meta.get("skip_reason", "No signal")
+                                if not order_id
+                                else None
                             ),
                         },
                     }
@@ -3405,7 +3896,9 @@ def main() -> None:
                         )
                     else:
                         if signal:
-                            print("[INFO] Trade SKIPPED - Reason: Safety guard or execution failure")
+                            print(
+                                "[INFO] Trade SKIPPED - Reason: Safety guard or execution failure"
+                            )
                         else:
                             print("[INFO] No signal generated - Continuing...")
 
@@ -3444,21 +3937,27 @@ def main() -> None:
                 if cycle_count % 25 == 0:
                     try:
                         from src.reports.daily_report import write_daily
-                        
+
                         daily_summary = {
                             'date': dt.datetime.utcnow().strftime('%Y-%m-%d'),
                             'mode': 'LIVE' if not args.demo else 'DEMO',
                             'symbols': symbols,
                             'equity_now': equity,
-                            'peak_equity': challenge_state.equity_peak if challenge_state else equity,
-                            'dd': (challenge_state.equity_peak - equity) / challenge_state.equity_peak if challenge_state and challenge_state.equity_peak > 0 else 0,
+                            'peak_equity': (
+                                challenge_state.equity_peak if challenge_state else equity
+                            ),
+                            'dd': (
+                                (challenge_state.equity_peak - equity) / challenge_state.equity_peak
+                                if challenge_state and challenge_state.equity_peak > 0
+                                else 0
+                            ),
                             'trades_today': challenge_state.trades_today if challenge_state else 0,
                             'accepted': 0,  # TODO: track actual accepted trades
                             'rejected': 0,  # TODO: track actual rejected trades
                             'top_reject_reasons': ['spread_high', 'concurrency_cap'],
-                            'last_decisions': []  # TODO: track last decisions
+                            'last_decisions': [],  # TODO: track last decisions
                         }
-                        
+
                         json_path, md_path = write_daily(daily_summary)
                         print(f"📊 Daily report generated: {md_path}")
                     except Exception as e:
@@ -3468,7 +3967,7 @@ def main() -> None:
                 if cycle_count == 1:
                     try:
                         from src.reports.activation_report import write_activation_report
-                        
+
                         activation_data = {
                             "mode": "LIVE" if not args.demo else "DEMO",
                             "symbols": symbols,
@@ -3477,19 +3976,28 @@ def main() -> None:
                                 "all_of_four": True,
                                 "spread_debounce": True,
                                 "soft_dd_gate": True,
-                                "concurrency_cap": config.get("signals", {}).get("concurrency_cap", 2)
+                                "concurrency_cap": config.get("signals", {}).get(
+                                    "concurrency_cap", 2
+                                ),
                             },
                             "risk_stops": {
-                                "daily_stop_realized": config.get("risk", {}).get("daily_stop_realized", 0.05),
-                                "dd_soft_from_peak": config.get("risk", {}).get("dd_soft_from_peak", 0.06)
+                                "daily_stop_realized": config.get("risk", {}).get(
+                                    "daily_stop_realized", 0.05
+                                ),
+                                "dd_soft_from_peak": config.get("risk", {}).get(
+                                    "dd_soft_from_peak", 0.06
+                                ),
                             },
                             "cost_model": "enabled",
                             "reports": {
                                 "daily_written": True,
-                                "paths_hint": [f"reports/daily_{dt.datetime.utcnow().strftime('%Y-%m-%d')}.md", f"reports/daily_{dt.datetime.utcnow().strftime('%Y-%m-%d')}.json"]
-                            }
+                                "paths_hint": [
+                                    f"reports/daily_{dt.datetime.utcnow().strftime('%Y-%m-%d')}.md",
+                                    f"reports/daily_{dt.datetime.utcnow().strftime('%Y-%m-%d')}.json",
+                                ],
+                            },
                         }
-                        
+
                         report_path = write_activation_report(activation_data)
                         print(f"🎯 Activation report generated: {report_path}")
                     except Exception as e:
@@ -3514,9 +4022,11 @@ def main() -> None:
                     # Use our local manage_open_positions function
                     pm_result = manage_open_positions("ALL", broker, config)
                     if pm_result["managed"] > 0:
-                        print(f"[PM] Managed {pm_result['managed']} positions: {', '.join(pm_result['actions'])}")
+                        print(
+                            f"[PM] Managed {pm_result['managed']} positions: {', '.join(pm_result['actions'])}"
+                        )
                     else:
-                        print(f"[PM] No positions to manage")
+                        print("[PM] No positions to manage")
                 except Exception as e:
                     print(f"⚠️ Position management error: {e}")
 
@@ -3529,15 +4039,17 @@ def main() -> None:
                 break
             except Exception as e:
                 print(f"[ERROR] Error in trading cycle {cycle_count}: {e}")
-                
+
                 # Supervisor hook: error event
                 try:
-                    symbol_info = get_symbol_info(symbol) if 'symbol' in locals() else {"spread_points": 0}
+                    symbol_info = (
+                        get_symbol_info(symbol) if 'symbol' in locals() else {"spread_points": 0}
+                    )
                     equity = broker.get_equity() or broker.get_balance()
                 except:
                     symbol_info = {"spread_points": 0}
                     equity = 0
-                
+
                 error_meta = {
                     "symbol": symbol if 'symbol' in locals() else "unknown",
                     "cycle_count": cycle_count,
@@ -3546,25 +4058,33 @@ def main() -> None:
                     "challenge": {
                         "enabled": config.get("challenge_mode", {}).get("enabled", True),
                         "trades_today": challenge_state.trades_today if challenge_state else 0,
-                        "consecutive_losses": challenge_state.consecutive_losses if challenge_state else 0
+                        "consecutive_losses": (
+                            challenge_state.consecutive_losses if challenge_state else 0
+                        ),
                     },
                     "cfg": {
                         "risk_pct": config.get("risk", {}).get("risk_pct", 0.005),
-                        "max_concurrent_positions": config.get("risk", {}).get("max_concurrent_positions", 1)
+                        "max_concurrent_positions": config.get("risk", {}).get(
+                            "max_concurrent_positions", 1
+                        ),
                     },
-                    "mode": "DEMO" if args.demo else "LIVE"
+                    "mode": "DEMO" if args.demo else "LIVE",
                 }
                 on_error("trading_cycle", str(e), error_meta)
-                
+
                 # Supervisor emit: error event
-                supervisor_emit("error", {
-                    "symbol": symbol,
-                    "stage": "trading_cycle",
-                    "msg": str(e),
-                    "mode": "LIVE" if not args.demo else "DEMO"
-                })
-                
+                supervisor_emit(
+                    "error",
+                    {
+                        "symbol": symbol,
+                        "stage": "trading_cycle",
+                        "msg": str(e),
+                        "mode": "LIVE" if not args.demo else "DEMO",
+                    },
+                )
+
                 import traceback
+
                 traceback.print_exc()
                 print("[INFO] Continuing after error...")
                 time.sleep(30)  # Longer sleep after error
@@ -3578,6 +4098,13 @@ def main() -> None:
         traceback.print_exc()
         return 1
 
+
+# JSON logging setup
+import os
+
+if os.environ.get("MRBEN_JSON_LOG", "1") == "1":
+    setup_json_logger()
+Path("logs").mkdir(exist_ok=True)
 
 if __name__ == "__main__":
     main()
