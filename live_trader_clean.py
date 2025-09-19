@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """
 MR BEN Live Trading System - Production-Grade EntryPoint
@@ -11,6 +12,8 @@ NEW: Confluence Strategy Integration
 - Risk management with position sizing
 - Spread and position count filters
 """
+
+from __future__ import annotations
 
 import argparse
 import json
