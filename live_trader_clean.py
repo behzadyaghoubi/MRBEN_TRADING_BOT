@@ -15,7 +15,7 @@ NEW: Confluence Strategy Integration
 
 from __future__ import annotations
 
-# --- Standard library imports ---
+# --- Standard library imports (critical ordering) ---
 import argparse
 import json
 import logging
@@ -96,9 +96,9 @@ from src.execution.adaptive_exec import (
 # Import AI and execution features
 from src.features.flags import FLAGS
 
-# JSON logging setup
-if os.getenv("MRBEN_JSON_LOG", "1") == "1":
-    setup_json_logger()
+# Unified JSON Logging + UTC (idempotent)
+from src.core.logging_setup import setup_json_logger
+setup_json_logger()  # idempotent
 Path("logs").mkdir(exist_ok=True)
 
 logger = logging.getLogger(__name__)
@@ -117,41 +117,62 @@ try:
 except ImportError as e:
     logger.warning(f"[WARNING] Failed to import challenge guards: {e}")
 
-    # Direct fallback (no separate fallback file needed)
-    # Minimal fallback if centralized module missing
-    class ChallengeState:
-        def __init__(self):
-            self.equity_peak = 0.0
-            self.equity_start_of_day = 0.0
-            self.trades_today = 0
-            self.consecutive_losses = 0
-    
-def guard_challenge(*args, **kwargs): 
-    return True, "challenge_disabled"
-    
-def update_challenge_state(state, *args, **kwargs): 
-    return state
-    
-def initialize_challenge_state(broker): 
-    return ChallengeState()
-    
-def rr_ok(rr, min_rr): 
-    return rr >= min_rr
+    # Use centralized fallbacks
+    try:
+        from src.core.challenge_guards_fallback import (
+            ChallengeState, guard_challenge, initialize_challenge_state,
+            rr_ok, update_challenge_state
+        )
+    except Exception:
+        # Minimal fallback if centralized module missing
+        class ChallengeState:
+            def __init__(self):
+                self.equity_peak = 0.0
+                self.equity_start_of_day = 0.0
+                self.trades_today = 0
+                self.consecutive_losses = 0
+        
+        def guard_challenge(*args, **kwargs): 
+            return True, "challenge_disabled"
+        
+        def update_challenge_state(state, *args, **kwargs): 
+            return state
+        
+        def initialize_challenge_state(broker): 
+            return ChallengeState()
+        
+        def rr_ok(rr, min_rr): 
+            return rr >= min_rr
 
 # Path and env already handled at top
 
-# MT5 and broker imports (graceful handling based on mode)
-mt5_ok = True
+# Mode normalization function
+def _normalize_mode():
+    try:
+        # Check if args is available in globals
+        if 'args' in globals() and hasattr(globals()['args'], 'mode'):
+            return globals()['args'].mode.lower()
+        return os.getenv('MRBEN_MODE','live').lower()
+    except Exception:
+        return os.getenv('MRBEN_MODE','live').lower()
+
+# MT5 handling per mode (graceful demo/report; fail-fast live)
+mt5_ok = False
+mt5_inited = False
 mt5 = None
 broker = None
 
 try:
     import MetaTrader5 as mt5
     from src.core.broker_mt5 import broker
-    logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
+    mt5_inited = mt5.initialize()
+    mt5_ok = bool(mt5_inited)
+    if not mt5_ok:
+        logger.error(json.dumps({"kind":"mt5_init_fail","ts":datetime.now(UTC).isoformat()}))
+    else:
+        logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
 except Exception as e:
-    mt5_ok = False
-    logger.error(json.dumps({"kind":"import_error","mod":"mt5_broker","err":str(e),"ts":datetime.now(UTC).isoformat()}))
+    logger.error(json.dumps({"kind":"mt5_import_fail","err":str(e),"ts":datetime.now(UTC).isoformat()}))
     # Mode-specific handling will be done in main() when mode is known
 
 # Core imports
@@ -2055,6 +2076,11 @@ def _fetch_confluence_data_util(
         # 🔒 Remove incomplete last bar
         df_htf = _drop_incomplete_last_bar(df_htf, tf_trend)
         df_ltf = _drop_incomplete_last_bar(df_ltf, tf_signal)
+        
+        # Apply data budget limits
+        from src.core.data_budget import enforce_bar_limits
+        df_htf = enforce_bar_limits(df_htf, tf_trend)
+        df_ltf = enforce_bar_limits(df_ltf, tf_signal)
 
         if len(df_htf) < bars // 2 or len(df_ltf) < bars // 2:
             raise RuntimeError("insufficient_ohlc")
@@ -4287,10 +4313,23 @@ def main():
         cycle_count = 0
         max_cycles = args.max_cycles if hasattr(args, 'max_cycles') and args.max_cycles else 1000000
         
+        # Determine mode
+        mode = "live" if args.live else ("demo" if args.demo else "report" if args.report_only else "demo")
+        
         logger.info(f"[INFO] Starting trading loop (max cycles: {max_cycles})")
         
         while cycle_count < max_cycles:
             cycle_count += 1
+            
+            # Heartbeat logging
+            logger.info(json.dumps({
+                "kind": "heartbeat",
+                "cycle": cycle_count,
+                "mode": mode,
+                "symbols": symbols_list,
+                "ts": datetime.now(UTC).isoformat()
+            }))
+            
             logger.info(f"\n[INFO] Trading cycle {cycle_count} - {datetime.now(UTC).strftime('%H:%M:%S')}")
             
             try:
@@ -4322,7 +4361,12 @@ def main():
                 time.sleep(12)  # 12 seconds between cycles
                 
             except KeyboardInterrupt:
-                logger.info("🛑 Trading interrupted by user")
+                logger.info(json.dumps({
+                    "kind": "shutdown",
+                    "reason": "user_interrupt",
+                    "cycle": cycle_count,
+                    "ts": datetime.now(UTC).isoformat()
+                }))
                 break
             except Exception as e:
                 logger.error(f"Error in trading cycle: {e}")
@@ -4330,16 +4374,39 @@ def main():
                 traceback.print_exc()
                 time.sleep(30)  # Longer sleep after error
         
-        logger.info(f"[INFO] Trading completed. Total cycles: {cycle_count}")
+        logger.info(json.dumps({
+            "kind": "trading_completed",
+            "total_cycles": cycle_count,
+            "ts": datetime.now(UTC).isoformat()
+        }))
             
     except KeyboardInterrupt:
-        logger.info("🛑 Trading interrupted by user")
+        logger.info(json.dumps({
+            "kind": "shutdown",
+            "reason": "keyboard_interrupt",
+            "ts": datetime.now(UTC).isoformat()
+        }))
         return 0
     except Exception as e:
-        logger.error(f"💥 Fatal error in main: {e}")
+        logger.error(json.dumps({
+            "kind": "fatal_error",
+            "error": str(e),
+            "ts": datetime.now(UTC).isoformat()
+        }))
         import traceback
         traceback.print_exc()
         return 1
+    finally:
+        # MT5 shutdown
+        try:
+            if mt5_ok and mt5_inited:
+                mt5.shutdown()
+                logger.info(json.dumps({
+                    "kind": "mt5_shutdown",
+                    "ts": datetime.now(UTC).isoformat()
+                }))
+        except Exception:
+            pass
     
     return 0
 
