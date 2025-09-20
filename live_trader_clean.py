@@ -35,6 +35,9 @@ if os.getenv("MRBEN_JSON_LOG", "1") == "1":
     setup_json_logger()
 logger = logging.getLogger(__name__)
 
+# Error tracking
+from src.core.errors import TradingError, log_trading_error
+
 # Additional imports
 import time
 import threading
@@ -1543,83 +1546,11 @@ class LiveTraderApp:
         except Exception as e:
             self.logger.error(f"Failed to generate final report: {e}")
 
-def parse_symbol_list(s: str) -> list[str]:
-    """Parse comma-separated symbol list and normalize"""
-    return [x.strip().upper().replace(".","") for x in (s or "").split(",") if x.strip()]
+# Moved to src/rt/entry_runtime.py
+# Legacy imports for compatibility
+from src.rt.entry_runtime import parse_symbol_list, parse_args
 
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments"""
-    p = argparse.ArgumentParser("MR BEN Live Trader")
-    
-    # Core arguments with ENV defaults
-    p.add_argument("--mode", choices=["live","demo","report"], default=os.getenv("MRBEN_MODE","live"))
-    p.add_argument("--symbols", type=str, default=os.getenv("MRBEN_ACTIVE_SYMBOLS","XAUUSD,EURUSD"))
-    p.add_argument("--dry-run", action="store_true", default=os.getenv("DRY_RUN_ORDER","0")=="1")
-    p.add_argument("--timeframe", type=str, default=os.getenv("MRBEN_TF","M15"))
-    p.add_argument("--heartbeat-sec", type=float, default=float(os.getenv("HEARTBEAT_SEC","30")))
-    
-    # Legacy support
-    p.add_argument("--symbol", type=str, help="Trading symbol or comma-separated list (legacy)")
-    p.add_argument("--profile", default=None, help="Configuration profile (production/test_loose)")
-    
-    # Trading mode (legacy support)
-    mode_group = p.add_mutually_exclusive_group()
-    mode_group.add_argument("--live", action="store_true", help="Live trading mode (legacy)")
-    mode_group.add_argument("--demo", action="store_true", help="Demo trading mode (legacy)")
-    mode_group.add_argument("--simulate", action="store_true", help="Simulation mode (legacy)")
-
-    # Risk and execution
-    p.add_argument("--max-orders", type=int, default=1, help="Maximum open orders (default: 1)")
-    p.add_argument("--bars", type=int, default=1500, help="Bars for ATR/indicators (default: 1500)")
-    # پیش‌فرض None: فقط اگر کاربر مقدار داد اورراید می‌کنیم
-    p.add_argument("--risk", type=float, default=None, help="Risk per trade override (e.g. 0.003)")
-    p.add_argument("--supervisor", choices=["on", "off"], help="Override supervisor.enabled")
-    p.add_argument("--challenge", choices=["on", "off"], help="Override challenge_mode.enabled")
-    p.add_argument(
-        "--json-logs", action="store_true", default=True, help="Enable structured JSON logging"
-    )
-    p.add_argument(
-        "--debug-scan-on-nosignal",
-        action="store_true",
-        help="Enable debug scan on no signal (DEMO only)",
-    )
-    p.add_argument(
-        "--demo-smoke-signal",
-        action="store_true",
-        help="Enable demo smoke signals for testing (DEMO only)",
-    )
-    p.add_argument(
-        "--max-risk-per-trade",
-        type=float,
-        default=0.005,
-        help="Max risk per trade (default: 0.005)",
-    )
-
-    # Report mode
-    p.add_argument("--report-only", action="store_true", help="Generate report only, no trading")
-
-    # Logging and reporting
-    p.add_argument(
-        "--log-level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        default="INFO",
-        help="Log level (default: INFO)",
-    )
-    p.add_argument(
-        "--report-every", type=int, default=20, help="Report every N cycles (default: 20)"
-    )
-    p.add_argument(
-        "--max-cycles", type=int, default=0, help="Max cycles (0 = run forever, default: 0)"
-    )
-
-    # Configuration
-    p.add_argument(
-        "--config",
-        default="config/pro_config.json",
-        help="Configuration file (default: config/pro_config.json)",
-    )
-
-    return p.parse_args()
+# Legacy parse_args removed - moved to src/rt/entry_runtime.py
 
 def load_json_config(config_path: str) -> dict[str, Any]:
     """Load and parse JSON configuration file"""
@@ -4167,211 +4098,11 @@ def main() -> None:
         return 1
 
 def main():
-    """Main entry point for live trading system"""
-    try:
-        # Parse command line arguments
-        args = parse_args()
-        
-        # MT5 per-mode handling (LIVE=fail-fast / DEMO/REPORT=graceful)
-        mode = args.mode.lower()
-        
-        mt5_ok, mt5_inited = False, False
-        mt5 = None
-        broker = None
-        
-        try:
-            import MetaTrader5 as mt5
-            mt5_inited = mt5.initialize()
-            mt5_ok = bool(mt5_inited)
-            if not mt5_ok:
-                logger.error(json.dumps({"kind":"mt5_init_fail","mode":mode,"ts":datetime.now(UTC).isoformat()}))
-                if mode == "live":
-                    sys.exit(1)
-            else:
-                # Import broker if MT5 is OK
-                try:
-                    from src.core.broker_mt5 import broker
-                    logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
-                except Exception as broker_e:
-                    logger.error(json.dumps({"kind":"broker_import_fail","err":str(broker_e),"ts":datetime.now(UTC).isoformat()}))
-                    
-        except Exception as e:
-            logger.error(json.dumps({"kind":"mt5_import_fail","err":str(e),"mode":mode,"ts":datetime.now(UTC).isoformat()}))
-            if mode == "live":
-                sys.exit(1)
-        
-        # Load configuration
-        logger.info(f"DEBUG: Loading config file: {args.config}")
-        config = load_config(args.config, args)
-        logger.info(f"DEBUG: Loaded config symbols: {config.get('symbols', {}).get('supported', [])}")
-        
-        # Parse symbols using new function
-        symbols_list = parse_symbol_list(args.symbols)
-        if not symbols_list and args.symbol:
-            symbols_list = parse_symbol_list(args.symbol)
-        if not symbols_list:
-            symbols_list = [config.get("symbols", {}).get("default", "XAUUSD")]
-        
-        # Import symbol alias mapper
-        from src.core.symbol_alias import map_symbol, map_symbols
-        
-        # Apply symbol mapping
-        original_symbols = symbols_list.copy()
-        symbols_list = map_symbols(symbols_list)
-        
-        # Log symbol aliases if any changes were made
-        for orig, mapped in zip(original_symbols, symbols_list):
-            if orig != mapped:
-                logger.info(f"Symbol alias: {orig} -> {mapped}")
+    """Main entry point - delegates to runtime"""
+    from src.rt.entry_runtime import main_runtime
+    return main_runtime()
 
-        logger.info(f"[INFO] Trading symbols: {symbols_list}")
-        
-        # Validate EACH symbol; never validate the raw CLI string
-        def validate_symbol(symbol: str) -> None:
-            """Validate symbol against supported list"""
-            supported_symbols = config.get("symbols", {}).get("supported", ["XAUUSD"])
-            logger.info(f"DEBUG: Validating symbol '{symbol}' against supported list: {supported_symbols}")
-            if symbol not in supported_symbols:
-                logger.info(f"❌ Symbol '{symbol}' not in supported list: {supported_symbols}")
-                raise SystemExit(f"Unsupported symbol: {symbol}")
-
-        # Validate all symbols
-        for symbol in symbols_list:
-            validate_symbol(symbol)
-        
-        # Use the pipeline approach as recommended
-        logger.info(f"[INFO] Starting pipeline-based trading for {symbols_list}")
-        
-        # Initialize services
-        services = {}
-        if broker:
-            services["broker"] = broker
-            logger.info("[INFO] Broker service initialized")
-        else:
-            logger.warning("[WARNING] Broker not available - running in degraded mode")
-            return 1
-        
-        # Run trading loop for each symbol
-        cycle_count = 0
-        max_cycles = args.max_cycles if hasattr(args, 'max_cycles') and args.max_cycles else 1000000
-        
-        # Determine mode
-        mode = "live" if args.live else ("demo" if args.demo else "report" if args.report_only else "demo")
-        
-        logger.info(f"[INFO] Starting trading loop (max cycles: {max_cycles})")
-        
-        while cycle_count < max_cycles:
-            cycle_count += 1
-            
-            # Heartbeat logging
-            logger.info(json.dumps({
-                "kind": "heartbeat",
-                "cycle": cycle_count,
-                "mode": mode,
-                "symbols": symbols_list,
-                "ts": datetime.now(UTC).isoformat()
-            }))
-            
-            logger.info(f"\n[INFO] Trading cycle {cycle_count} - {datetime.now(UTC).strftime('%H:%M:%S')}")
-            
-            try:
-                for symbol in symbols_list:
-                    logger.info(f"[INFO] Processing symbol: {symbol}")
-                    
-                    # Check MT5 availability
-                    if not mt5_ok:
-                        logger.warning(json.dumps({"kind":"skip","symbol":symbol,"reason":"mt5_unavailable","ts":datetime.now(UTC).isoformat()}))
-                        continue
-                    
-                    # ADAUSD monitor-only mode
-                    if symbol == "ADAUSD":
-                        logger.info(json.dumps({"kind":"monitor_only","symbol":symbol,"ts":datetime.now(UTC).isoformat()}))
-                        continue
-                    
-                    # Pre-filters
-                    from src.filters.session_filter import session_ok
-                    from src.filters.news_filter import news_ok
-                    
-                    if not session_ok(symbol):
-                        logger.info(json.dumps({"kind":"prefilter","symbol":symbol,"reason":"session","ts":datetime.now(UTC).isoformat()}))
-                        continue
-                    if not news_ok(symbol):
-                        logger.info(json.dumps({"kind":"prefilter","symbol":symbol,"reason":"news","ts":datetime.now(UTC).isoformat()}))
-                        continue
-                    
-                    # Evaluate signal for this symbol
-                    signal, decision_meta = evaluate_once(
-                        symbol=symbol,
-                        cfg=config,
-                        services=services,
-                        challenge_state=None,
-                        is_live_mode=not args.demo
-                    )
-                    
-                    # Maybe execute trade if signal exists
-                    if signal:
-                        result = maybe_execute_trade(
-                            signal=signal,
-                            meta=decision_meta,
-                            cfg=config,
-                            services=services
-                        )
-                        logger.info(f"[INFO] Trade result: {result}")
-                    else:
-                        logger.info("[INFO] No signal generated - Continuing...")
-                
-                # Sleep between cycles
-                time.sleep(12)  # 12 seconds between cycles
-                
-            except KeyboardInterrupt:
-                logger.info(json.dumps({
-                    "kind": "shutdown",
-                    "reason": "user_interrupt",
-                    "cycle": cycle_count,
-                    "ts": datetime.now(UTC).isoformat()
-                }))
-                break
-            except Exception as e:
-                logger.error(f"Error in trading cycle: {e}")
-                import traceback
-                traceback.print_exc()
-                time.sleep(30)  # Longer sleep after error
-        
-        logger.info(json.dumps({
-            "kind": "trading_completed",
-            "total_cycles": cycle_count,
-            "ts": datetime.now(UTC).isoformat()
-        }))
-            
-    except KeyboardInterrupt:
-        logger.info(json.dumps({
-            "kind": "shutdown",
-            "reason": "keyboard_interrupt",
-            "ts": datetime.now(UTC).isoformat()
-        }))
-        return 0
-    except Exception as e:
-        logger.error(json.dumps({
-            "kind": "fatal_error",
-            "error": str(e),
-            "ts": datetime.now(UTC).isoformat()
-        }))
-        import traceback
-        traceback.print_exc()
-        return 1
-    finally:
-        # MT5 shutdown
-        try:
-            if mt5_ok and mt5_inited:
-                mt5.shutdown()
-                logger.info(json.dumps({
-                    "kind": "mt5_shutdown",
-                    "ts": datetime.now(UTC).isoformat()
-                }))
-        except Exception:
-            pass
-    
-    return 0
+# Legacy main function removed - moved to src/rt/entry_runtime.py
 
 # JSON logging setup
 import os
