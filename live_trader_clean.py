@@ -79,7 +79,6 @@ from src.ai.replay_buffer import log_experience
 # Multi-symbol trading imports
 from src.app.multi_runner import MultiSymbolEngine, SymbolConfig
 from src.core.alerting import send_alert
-from src.core.logging_setup import setup_json_logger
 
 # Import new core modules
 from src.core.order_safety import send_order_safe, SymbolInfo
@@ -95,12 +94,7 @@ from src.execution.adaptive_exec import (
 # Import AI and execution features
 from src.features.flags import FLAGS
 
-# Unified JSON Logging + UTC (idempotent)
-from src.core.logging_setup import setup_json_logger
-setup_json_logger()  # idempotent
-Path("logs").mkdir(exist_ok=True)
-
-logger = logging.getLogger(__name__)
+# Logger already setup above - remove duplicate
 
 # Challenge guards
 try:
@@ -129,11 +123,8 @@ def _normalize_mode():
 # AI Filter imports
 from src.ai.filter import ConfluenceAIFilter
 
-# New enhanced components
-from src.core.gating import AllOfFourGate, ConcurrencyLimiter
+# Enhanced components (will be imported with fallbacks below)
 from src.core.metrics import PerformanceMetrics
-from src.core.spread_control import SpreadController
-from src.core.supervisor_enhanced import SupervisorClient
 from src.strategies.stealth_strategy import StealthStrategy
 
 # Supervisor (enhanced or fallback)
@@ -190,9 +181,9 @@ try:
     from src.data.manager import MT5DataManager
 
     DATA_MANAGER_AVAILABLE = True
-    logger.info("[OK] MT5DataManager imported successfully")
+    logger.info(json.dumps({"kind":"import_ok","mod":"MT5DataManager","ts":datetime.now(UTC).isoformat()}))
 except ImportError as e:
-    logger.info(f"[WARNING] Failed to import MT5DataManager: {e}")
+    logger.warning(json.dumps({"kind":"import_warn","mod":"MT5DataManager","err":str(e),"ts":datetime.now(UTC).isoformat()}))
     DATA_MANAGER_AVAILABLE = False
 
 # AI model imports
@@ -293,7 +284,7 @@ class LiveTraderApp:
 
         # Validate and set symbol
         self.symbol = self._validate_symbol(args.symbol, cfg)
-        self.logger.info(f"Using symbol: {self.symbol}")
+        self.logger.info(json.dumps({"kind":"symbol_set","symbol":self.symbol,"ts":datetime.now(UTC).isoformat()}))
 
         # Initialize metrics
         self.metrics = PerformanceMetrics()
@@ -4385,9 +4376,7 @@ def main():
 # JSON logging setup
 import os
 
-if os.environ.get("MRBEN_JSON_LOG", "1") == "1":
-    setup_json_logger()
-Path("logs").mkdir(exist_ok=True)
+# Logger already setup at top
 
 if __name__ == "__main__":
     main()
