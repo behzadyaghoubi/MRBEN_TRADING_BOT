@@ -118,61 +118,48 @@ except ImportError as e:
     logger.warning(f"[WARNING] Failed to import challenge guards: {e}")
 
     # Use centralized fallbacks
-    try:
-        from src.core.challenge_guards_fallback import (
-            ChallengeState, guard_challenge, initialize_challenge_state,
-            rr_ok, update_challenge_state
-        )
-    except Exception:
-        # Minimal fallback if centralized module missing
-        class ChallengeState:
-            def __init__(self):
-                self.equity_peak = 0.0
-                self.equity_start_of_day = 0.0
-                self.trades_today = 0
-                self.consecutive_losses = 0
-        
-        def guard_challenge(*args, **kwargs): 
-            return True, "challenge_disabled"
-        
-        def update_challenge_state(state, *args, **kwargs): 
-            return state
-        
-        def initialize_challenge_state(broker): 
-            return ChallengeState()
-        
-        def rr_ok(rr, min_rr): 
-            return rr >= min_rr
+    from src.core.challenge_guards_fallback import (
+        ChallengeState, guard_challenge, initialize_challenge_state,
+        rr_ok, update_challenge_state
+    )
 
 # Path and env already handled at top
 
 # Mode normalization function
 def _normalize_mode():
     try:
-        # Check if args is available in globals
         if 'args' in globals() and hasattr(globals()['args'], 'mode'):
             return globals()['args'].mode.lower()
         return os.getenv('MRBEN_MODE','live').lower()
     except Exception:
         return os.getenv('MRBEN_MODE','live').lower()
 
-# MT5 handling per mode (graceful demo/report; fail-fast live)
-mt5_ok = False
-mt5_inited = False
+# MT5 per-mode handling (LIVE=fail-fast, DEMO/REPORT=graceful)
+mode = _normalize_mode()
+mt5_ok, mt5_inited = False, False
 mt5 = None
 broker = None
 
 try:
     import MetaTrader5 as mt5
-    from src.core.broker_mt5 import broker
     mt5_inited = mt5.initialize()
     mt5_ok = bool(mt5_inited)
     if not mt5_ok:
-        logger.error(json.dumps({"kind":"mt5_init_fail","ts":datetime.now(UTC).isoformat()}))
-    else:
-        logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
+        logger.error(json.dumps({"kind":"mt5_init_fail","mode":mode,"ts":datetime.now(UTC).isoformat()}))
+        if mode == "live": 
+            sys.exit(1)
 except Exception as e:
-    logger.error(json.dumps({"kind":"mt5_import_fail","err":str(e),"ts":datetime.now(UTC).isoformat()}))
+    logger.error(json.dumps({"kind":"mt5_import_fail","err":str(e),"mode":mode,"ts":datetime.now(UTC).isoformat()}))
+    if mode == "live": 
+        sys.exit(1)
+
+# Import broker if MT5 available
+if mt5_ok:
+    try:
+        from src.core.broker_mt5 import broker
+        logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
+    except Exception as e:
+        logger.error(json.dumps({"kind":"broker_import_fail","err":str(e),"ts":datetime.now(UTC).isoformat()}))
     # Mode-specific handling will be done in main() when mode is known
 
 # Core imports
@@ -203,19 +190,9 @@ except ImportError as e:
     logger.info(f"[WARNING] Failed to import supervisor: {e}")
 
     # Use centralized fallback
-    try:
-        from src.core.supervisor_fallback import (
-            initialize_supervisor, on_cycle, on_error, on_fill, on_signal, on_skip, supervisor_emit
-        )
-    except Exception:
-        # Minimal fallback if centralized module missing
-        def initialize_supervisor(config=None): return None
-        def on_cycle(meta): pass
-        def on_signal(signal_meta): pass
-        def on_skip(reason, meta=None): pass
-        def on_fill(fill_meta): pass
-        def on_error(error_meta): pass
-        def supervisor_emit(event_type, context, reason=None): pass
+    from src.core.supervisor_fallback import (
+        initialize_supervisor, on_cycle, on_error, on_fill, on_signal, on_skip, supervisor_emit
+    )
 
 # Risk manager imports
 from src.core.risk_manager import position_size_by_risk
@@ -230,43 +207,10 @@ try:
 except ImportError as e:
     logger.info(f"[WARNING] Enhanced components not available: {e}")
 
-    # Fallback implementations
-    class AllOfFourGate:
-        def __init__(self, cfg):
-            pass
-
-        def decide(self, sym, ctx):
-            return type('Decision', (), {'allow': True, 'reason': 'fallback'})()
-
-    class ConcurrencyLimiter:
-        def __init__(self, cfg):
-            pass
-
-        def can_open(self, sym):
-            return True
-
-        def on_open(self, sym):
-            pass
-
-        def on_close(self, sym):
-            pass
-
-    class SpreadController:
-        def __init__(self, cfg):
-            pass
-
-        def ok(self, sym, ctx):
-            return True
-
-    class SupervisorClient:
-        def __init__(self, cfg):
-            pass
-
-        def heartbeat(self):
-            pass
-
-        def decide(self, snapshot):
-            return type('SupDecision', (), {'allow': True, 'reason': 'fallback', 'tweaks': {}})()
+    # Use centralized fallbacks
+    from src.core.gating_fallback import AllOfFourGate, ConcurrencyLimiter
+    from src.core.spread_control_fallback import SpreadController
+    from src.core.supervisor_fallback import SupervisorClient
 
 # Indicator imports
 from src.indicators.atr import compute_atr
@@ -1652,24 +1596,30 @@ class LiveTraderApp:
         except Exception as e:
             self.logger.error(f"Failed to generate final report: {e}")
 
+def parse_symbol_list(s: str) -> list[str]:
+    """Parse comma-separated symbol list and normalize"""
+    return [x.strip().upper().replace(".","") for x in (s or "").split(",") if x.strip()]
+
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments"""
-    p = argparse.ArgumentParser(
-        description="MR BEN — Production-Grade Live Trading System",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    # Core arguments
-    p.add_argument("--symbol", type=str, help="Trading symbol or comma-separated list")
-    p.add_argument("--symbols", type=str, default=None, help="Comma-separated list of symbols to trade concurrently (e.g., XAUUSD,EURUSD,ADAUSD)")
-    p.add_argument("--timeframe", default="M15", help="Primary execution timeframe (default: M15)")
+    p = argparse.ArgumentParser("MR BEN Live Trader")
+    
+    # Core arguments with ENV defaults
+    p.add_argument("--mode", choices=["live","demo","report"], default=os.getenv("MRBEN_MODE","live"))
+    p.add_argument("--symbols", type=str, default=os.getenv("MRBEN_ACTIVE_SYMBOLS","XAUUSD,EURUSD"))
+    p.add_argument("--dry-run", action="store_true", default=os.getenv("DRY_RUN_ORDER","0")=="1")
+    p.add_argument("--timeframe", type=str, default=os.getenv("MRBEN_TF","M15"))
+    p.add_argument("--heartbeat-sec", type=float, default=float(os.getenv("HEARTBEAT_SEC","30")))
+    
+    # Legacy support
+    p.add_argument("--symbol", type=str, help="Trading symbol or comma-separated list (legacy)")
     p.add_argument("--profile", default=None, help="Configuration profile (production/test_loose)")
-
-    # Trading mode (mutually exclusive)
+    
+    # Trading mode (legacy support)
     mode_group = p.add_mutually_exclusive_group()
-    mode_group.add_argument("--live", action="store_true", help="Live trading mode")
-    mode_group.add_argument("--demo", action="store_true", help="Demo trading mode (default)")
-    mode_group.add_argument("--simulate", action="store_true", help="Simulation mode")
+    mode_group.add_argument("--live", action="store_true", help="Live trading mode (legacy)")
+    mode_group.add_argument("--demo", action="store_true", help="Demo trading mode (legacy)")
+    mode_group.add_argument("--simulate", action="store_true", help="Simulation mode (legacy)")
 
     # Risk and execution
     p.add_argument("--max-orders", type=int, default=1, help="Maximum open orders (default: 1)")
@@ -1773,6 +1723,10 @@ def load_config(config_path: str, args=None) -> dict[str, Any]:
         config["strategy"] = {"name": "confluence_pro"}
     if "risk" not in config:
         config["risk"] = {"risk_pct": 0.01, "max_concurrent_positions": 1}
+    
+    # Enforce execution safety limits
+    config["risk"]["max_concurrent_positions"] = min(config["risk"].get("max_concurrent_positions", 1), 2)
+    config["risk"]["max_pos_per_symbol"] = 1
     
     # Multi-symbol defaults
     config.setdefault("symbols", {})
@@ -4258,11 +4212,12 @@ def main():
         config = load_config(args.config, args)
         logger.info(f"DEBUG: Loaded config symbols: {config.get('symbols', {}).get('supported', [])}")
         
-        # Apply symbol mapping (legacy .PRO -> clean names)
-        if args.symbols:
-            symbols_list = [s.strip() for s in args.symbols.split(",") if s.strip()]
-        else:
-            symbols_list = [args.symbol] if args.symbol else [config.get("symbols", {}).get("default", "XAUUSD")]
+        # Parse symbols using new function
+        symbols_list = parse_symbol_list(args.symbols)
+        if not symbols_list and args.symbol:
+            symbols_list = parse_symbol_list(args.symbol)
+        if not symbols_list:
+            symbols_list = [config.get("symbols", {}).get("default", "XAUUSD")]
         
         # Import symbol alias mapper
         from src.core.symbol_alias import map_symbol, map_symbols
@@ -4335,6 +4290,27 @@ def main():
             try:
                 for symbol in symbols_list:
                     logger.info(f"[INFO] Processing symbol: {symbol}")
+                    
+                    # Check MT5 availability
+                    if not mt5_ok:
+                        logger.warning(json.dumps({"kind":"skip","symbol":symbol,"reason":"mt5_unavailable","ts":datetime.now(UTC).isoformat()}))
+                        continue
+                    
+                    # ADAUSD monitor-only mode
+                    if symbol == "ADAUSD":
+                        logger.info(json.dumps({"kind":"monitor_only","symbol":symbol,"ts":datetime.now(UTC).isoformat()}))
+                        continue
+                    
+                    # Pre-filters
+                    from src.filters.session_filter import session_ok
+                    from src.filters.news_filter import news_ok
+                    
+                    if not session_ok(symbol):
+                        logger.info(json.dumps({"kind":"prefilter","symbol":symbol,"reason":"session","ts":datetime.now(UTC).isoformat()}))
+                        continue
+                    if not news_ok(symbol):
+                        logger.info(json.dumps({"kind":"prefilter","symbol":symbol,"reason":"news","ts":datetime.now(UTC).isoformat()}))
+                        continue
                     
                     # Evaluate signal for this symbol
                     signal, decision_meta = evaluate_once(
