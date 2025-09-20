@@ -15,40 +15,39 @@ NEW: Confluence Strategy Integration
 
 from __future__ import annotations
 
-# --- Standard library imports (critical ordering) ---
-import argparse
-import json
-import logging
-import os
-import sys
-import time
-import threading
-import faulthandler
-import traceback
-from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import UTC, datetime
-from decimal import Decimal
-from pathlib import Path
-from typing import Any
-
 # --- Repo path & early env hygiene (BEFORE any from src...) ---
+import os, sys, json, logging, argparse
+from datetime import datetime, UTC
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-SRC = os.path.join(ROOT, "src")
+SRC  = os.path.join(ROOT, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-# OpenAI and other env sanitization (no-op if absent)
 try:
     from src.core.env_sanitize import sanitize_openai_env
     sanitize_openai_env()
 except Exception:
     pass
 
+from src.core.logging_setup import setup_json_logger
+if os.getenv("MRBEN_JSON_LOG", "1") == "1":
+    setup_json_logger()
+logger = logging.getLogger(__name__)
+
+# Additional imports
+import time
+import threading
+import faulthandler
+import traceback
+from collections.abc import Mapping
+from dataclasses import dataclass
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
 # --- Project imports (AFTER path setup) ---
 from src.ops.signal_debug import log_ai_score
-
-# Additional standard library imports
 import pandas as pd
 
 # --- DEBUG HOOKS (safe, idempotent) ---
@@ -103,24 +102,16 @@ Path("logs").mkdir(exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
-# Import challenge mode guards
+# Challenge guards
 try:
     from src.core.challenge_guards import (
-        ChallengeState,
-        guard_challenge,
-        initialize_challenge_state,
-        rr_ok,
-        update_challenge_state,
+        ChallengeState, guard_challenge, initialize_challenge_state, rr_ok, update_challenge_state
     )
-
-    logger.info("[OK] Challenge mode guards imported")
-except ImportError as e:
-    logger.warning(f"[WARNING] Failed to import challenge guards: {e}")
-
-    # Use centralized fallbacks
+    logger.info(json.dumps({"kind":"import_ok","mod":"challenge_guards","ts":datetime.now(UTC).isoformat()}))
+except Exception as e:
+    logger.warning(json.dumps({"kind":"import_warn","mod":"challenge_guards","err":str(e),"ts":datetime.now(UTC).isoformat()}))
     from src.core.challenge_guards_fallback import (
-        ChallengeState, guard_challenge, initialize_challenge_state,
-        rr_ok, update_challenge_state
+        ChallengeState, guard_challenge, initialize_challenge_state, rr_ok, update_challenge_state
     )
 
 # Path and env already handled at top
@@ -134,34 +125,6 @@ def _normalize_mode():
     except Exception:
         return os.getenv('MRBEN_MODE','live').lower()
 
-# MT5 per-mode handling (LIVE=fail-fast, DEMO/REPORT=graceful)
-mode = _normalize_mode()
-mt5_ok, mt5_inited = False, False
-mt5 = None
-broker = None
-
-try:
-    import MetaTrader5 as mt5
-    mt5_inited = mt5.initialize()
-    mt5_ok = bool(mt5_inited)
-    if not mt5_ok:
-        logger.error(json.dumps({"kind":"mt5_init_fail","mode":mode,"ts":datetime.now(UTC).isoformat()}))
-        if mode == "live": 
-            sys.exit(1)
-except Exception as e:
-    logger.error(json.dumps({"kind":"mt5_import_fail","err":str(e),"mode":mode,"ts":datetime.now(UTC).isoformat()}))
-    if mode == "live": 
-        sys.exit(1)
-
-# Import broker if MT5 available
-if mt5_ok:
-    try:
-        from src.core.broker_mt5 import broker
-        logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
-    except Exception as e:
-        logger.error(json.dumps({"kind":"broker_import_fail","err":str(e),"ts":datetime.now(UTC).isoformat()}))
-    # Mode-specific handling will be done in main() when mode is known
-
 # Core imports
 # AI Filter imports
 from src.ai.filter import ConfluenceAIFilter
@@ -173,23 +136,14 @@ from src.core.spread_control import SpreadController
 from src.core.supervisor_enhanced import SupervisorClient
 from src.strategies.stealth_strategy import StealthStrategy
 
-# Supervisor imports
+# Supervisor (enhanced or fallback)
 try:
     from src.core.supervisor import (
-        initialize_supervisor,
-        on_cycle,
-        on_error,
-        on_fill,
-        on_signal,
-        on_skip,
-        supervisor_emit,
+        initialize_supervisor, on_cycle, on_error, on_fill, on_signal, on_skip, supervisor_emit
     )
-
-    logger.info("[OK] Trading Supervisor imported")
-except ImportError as e:
-    logger.info(f"[WARNING] Failed to import supervisor: {e}")
-
-    # Use centralized fallback
+    logger.info(json.dumps({"kind":"import_ok","mod":"supervisor","ts":datetime.now(UTC).isoformat()}))
+except Exception as e:
+    logger.warning(json.dumps({"kind":"import_warn","mod":"supervisor","err":str(e),"ts":datetime.now(UTC).isoformat()}))
     from src.core.supervisor_fallback import (
         initialize_supervisor, on_cycle, on_error, on_fill, on_signal, on_skip, supervisor_emit
     )
@@ -197,19 +151,21 @@ except ImportError as e:
 # Risk manager imports
 from src.core.risk_manager import position_size_by_risk
 
-# Enhanced components imports
+# Gating & Spread
 try:
     from src.core.gating import AllOfFourGate, ConcurrencyLimiter
-    from src.core.spread_control import SpreadController
-    from src.core.supervisor_enhanced import SupervisorClient
-
-    logger.info("[OK] Enhanced components imported")
-except ImportError as e:
-    logger.info(f"[WARNING] Enhanced components not available: {e}")
-
-    # Use centralized fallbacks
+except Exception:
     from src.core.gating_fallback import AllOfFourGate, ConcurrencyLimiter
+
+try:
+    from src.core.spread_control import SpreadController
+except Exception:
     from src.core.spread_control_fallback import SpreadController
+
+# Enhanced supervisor client (optional)
+try:
+    from src.core.supervisor_enhanced import SupervisorClient
+except Exception:
     from src.core.supervisor_fallback import SupervisorClient
 
 # Indicator imports
@@ -1887,13 +1843,21 @@ def bootstrap_broker() -> bool:
         logger.info(f"❌ Broker bootstrap error: {e}")
         return False
 
-def get_symbol_info(symbol: str) -> dict[str, Any]:
+def get_symbol_info(symbol: str, broker_service=None) -> dict[str, Any]:
     """Get symbol information from broker (idempotent, no sys.exit)"""
     try:
         import MetaTrader5 as mt5
+        
+        # Use provided broker or try to import
+        broker_obj = broker_service
+        if not broker_obj:
+            try:
+                from src.core.broker_mt5 import broker as broker_obj
+            except Exception:
+                raise RuntimeError("Broker not available")
 
         # Select symbol (idempotent - safe to call multiple times)
-        if not broker.symbol_select(symbol, True):
+        if not broker_obj.symbol_select(symbol, True):
             raise RuntimeError(f"Failed to select symbol: {symbol}")
 
         # Get symbol info
@@ -2010,16 +1974,24 @@ def _drop_incomplete_last_bar(df: pd.DataFrame, tf: str) -> pd.DataFrame:
     return df
 
 def _fetch_confluence_data_util(
-    symbol: str, cfg: dict[str, Any], bars: int = 600
+    symbol: str, cfg: dict[str, Any], bars: int = 600, broker_service=None
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Fetch data for Confluence Strategy (utility function)"""
     try:
         tf_trend = cfg.get("strategy", {}).get("timeframes", {}).get("trend", "H1")
         tf_signal = cfg.get("strategy", {}).get("timeframes", {}).get("signal", "M15")
 
+        # Use provided broker or try to import
+        broker_obj = broker_service
+        if not broker_obj:
+            try:
+                from src.core.broker_mt5 import broker as broker_obj
+            except Exception:
+                raise RuntimeError("Broker not available")
+
         # fetch from real broker (no dummy)
-        df_htf = broker.copy_rates(symbol, tf_trend, bars + 2)
-        df_ltf = broker.copy_rates(symbol, tf_signal, bars + 2)
+        df_htf = broker_obj.copy_rates(symbol, tf_trend, bars + 2)
+        df_ltf = broker_obj.copy_rates(symbol, tf_signal, bars + 2)
 
         if df_htf is None or df_ltf is None:
             raise RuntimeError("rates_none")
@@ -2068,7 +2040,8 @@ def evaluate_once(
 
         # Get symbol info
         try:
-            symbol_info = get_symbol_info(symbol)
+            broker_service = services.get("broker")
+            symbol_info = get_symbol_info(symbol, broker_service)
             # Display spread in percentage for crypto, points for others
             spread_display = symbol_info['spread_points']
             if symbol in cfg.get("symbols", {}).get("overrides", {}):
@@ -2100,7 +2073,8 @@ def evaluate_once(
         tf_signal = timeframes.get("signal", "M15")
 
         # Fetch real data for both timeframes using utility function
-        df_htf, df_ltf = _fetch_confluence_data_util(symbol, cfg, bars=600)
+        broker_service = services.get("broker")
+        df_htf, df_ltf = _fetch_confluence_data_util(symbol, cfg, bars=600, broker_service=broker_service)
 
         if df_htf.empty or df_ltf.empty:
             logger.info(f"❌ Failed to fetch real data for {symbol}")
@@ -4207,6 +4181,34 @@ def main():
         # Parse command line arguments
         args = parse_args()
         
+        # MT5 per-mode handling (LIVE=fail-fast / DEMO/REPORT=graceful)
+        mode = args.mode.lower()
+        
+        mt5_ok, mt5_inited = False, False
+        mt5 = None
+        broker = None
+        
+        try:
+            import MetaTrader5 as mt5
+            mt5_inited = mt5.initialize()
+            mt5_ok = bool(mt5_inited)
+            if not mt5_ok:
+                logger.error(json.dumps({"kind":"mt5_init_fail","mode":mode,"ts":datetime.now(UTC).isoformat()}))
+                if mode == "live":
+                    sys.exit(1)
+            else:
+                # Import broker if MT5 is OK
+                try:
+                    from src.core.broker_mt5 import broker
+                    logger.info(json.dumps({"kind":"import_ok","mod":"mt5_broker","ts":datetime.now(UTC).isoformat()}))
+                except Exception as broker_e:
+                    logger.error(json.dumps({"kind":"broker_import_fail","err":str(broker_e),"ts":datetime.now(UTC).isoformat()}))
+                    
+        except Exception as e:
+            logger.error(json.dumps({"kind":"mt5_import_fail","err":str(e),"mode":mode,"ts":datetime.now(UTC).isoformat()}))
+            if mode == "live":
+                sys.exit(1)
+        
         # Load configuration
         logger.info(f"DEBUG: Loading config file: {args.config}")
         config = load_config(args.config, args)
@@ -4250,18 +4252,12 @@ def main():
         logger.info(f"[INFO] Starting pipeline-based trading for {symbols_list}")
         
         # Initialize services
-        services = {
-            "ai_filter": None,  # Will be initialized if available
-            "broker": None,     # Will be initialized
-        }
-        
-        # Initialize broker
-        try:
-            from src.core.broker_mt5 import broker
+        services = {}
+        if broker:
             services["broker"] = broker
             logger.info("[INFO] Broker service initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize broker: {e}")
+        else:
+            logger.warning("[WARNING] Broker not available - running in degraded mode")
             return 1
         
         # Run trading loop for each symbol
